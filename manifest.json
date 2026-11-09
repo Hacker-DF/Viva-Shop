@@ -1,0 +1,28 @@
+{
+  "name": "Viva Shop",
+  "short_name": "Viva Shop",
+  "description": "Votre passerelle entre la Chine et le Togo",
+  "id": "./",
+  "lang": "fr",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F2F4F7",
+  "theme_color": "#0B2545",
+  "categories": ["shopping"],
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Boutique", "short_name": "Boutique", "url": "./index.html#/boutique",
+      "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Mes commandes", "short_name": "Commandes", "url": "./index.html#/commandes",
+      "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Mon compte", "short_name": "Compte", "url": "./index.html#/compte",
+      "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

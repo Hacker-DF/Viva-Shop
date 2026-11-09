@@ -1,0 +1,149 @@
+/* ==========================================================================
+   style.css — Fondations : variables (identité visuelle), reset, layout
+   ========================================================================== */
+
+:root {
+  /* Palette Viva Shop */
+  --navy: #0B2545;        /* Bleu marine : confiance, professionnalisme */
+  --electric: #1E6FD9;    /* Bleu électrique : technologie, innovation */
+  --gold: #F2B705;        /* Jaune doré : dynamisme, commerce */
+  --white: #FFFFFF;       /* Blanc : clarté */
+  --grey-100: #F2F4F7;    /* Gris clair : arrière-plan */
+  --grey-200: #E3E7ED;    /* Séparations */
+  --grey-600: #5B6573;    /* Texte secondaire */
+  --text: #14213D;
+
+  /* Statuts commerciaux (section 7 du cahier des charges) */
+  --status-red: #D62828;     /* EN ATTENTE */
+  --status-green: #2A9D55;   /* COLLECTE DES PAIEMENTS OUVERTE */
+  --status-grey: #6B7280;    /* COMMANDE CLÔTURÉE */
+  --status-orange: #F77F00;  /* SITUATION PARTICULIÈRE */
+
+  /* Dimensions */
+  --radius: 14px;
+  --shadow: 0 4px 14px rgba(11, 37, 69, 0.08);
+  --header-h: 64px;
+  --nav-h: 66px;
+
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Reset léger */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--grey-100);
+  -webkit-tap-highlight-color: transparent;
+}
+img { max-width: 100%; display: block; }
+a { color: var(--electric); text-decoration: none; }
+h1, h2, h3 { line-height: 1.25; color: var(--navy); margin: 0 0 .5em; }
+h1 { font-size: 1.5rem; }
+h2 { font-size: 1.2rem; }
+p { margin: 0 0 1em; }
+button, input, select, textarea { font: inherit; }
+:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.visually-hidden {
+  position: absolute !important; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+/* ---------- En-tête ---------- */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: var(--header-h);
+  padding: 0 16px;
+  padding-top: env(safe-area-inset-top, 0px);
+  background: var(--header-bg);
+  color: var(--white);
+  box-shadow: var(--shadow);
+}
+.brand { display: flex; align-items: center; gap: 10px; color: var(--white); min-width: 0; }
+.brand-mark {
+  flex: 0 0 auto;
+  display: grid; place-items: center;
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: var(--header-bg);
+  font-weight: 800;
+  font-size: .9rem;
+}
+.brand-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+.brand-text strong { font-size: .95rem; letter-spacing: .02em; white-space: nowrap; }
+.brand-text small {
+  font-size: .72rem; opacity: .85;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ---------- Contenu principal ---------- */
+.app-main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px 16px calc(var(--nav-h) + 28px + env(safe-area-inset-bottom, 0px));
+  min-height: calc(100vh - var(--header-h));
+}
+
+/* ---------- Navigation basse (mobile) ---------- */
+.bottom-nav {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 60;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  height: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--white);
+  border-top: 1px solid var(--grey-200);
+  box-shadow: 0 -4px 14px rgba(11, 37, 69, 0.06);
+}
+.nav-item {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px;
+  color: var(--grey-600);
+  font-size: .7rem;
+  font-weight: 600;
+  min-height: 44px; /* zone tactile confortable */
+}
+.nav-item svg { width: 22px; height: 22px; }
+.nav-item[aria-current="page"] { color: var(--electric); }
+.nav-item[aria-current="page"] svg { stroke: var(--electric); }
+
+/* ---------- Couleurs de l'en-tête et des titres (selon le thème) ---------- */
+:root {
+  --header-bg: #0B2545;
+  --heading: #0B2545;
+}
+
+/* ---------- Thème sombre ---------- */
+:root[data-theme="dark"] {
+  --white: #1A2333;        /* surfaces (cartes, formulaires) */
+  --grey-100: #0E1520;     /* arrière-plan */
+  --grey-200: #2B3648;     /* séparations */
+  --grey-600: #A3AEBF;     /* texte secondaire */
+  --text: #E7ECF4;
+  --navy: #E7ECF4;
+  --heading: #F2F5FA;
+  --header-bg: #071A33;
+  --shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  color-scheme: dark;
+}
+
+/* Filigrane : logo en arrière-plan de l'accueil */
+.home-page::before {
+  content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background: url("../assets/logo.jpg") center 45% / min(72vw, 460px) no-repeat;
+  opacity: .07;
+}
+.home-page .app-main { position: relative; z-index: 1; }

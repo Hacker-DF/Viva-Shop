@@ -1,0 +1,202 @@
+/* ==========================================================================
+   components.css — Composants réutilisables
+   ========================================================================== */
+
+/* ---------- Boutons ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 46px; padding: 10px 20px;
+  border: 2px solid transparent; border-radius: 12px;
+  font-weight: 700; cursor: pointer; text-align: center;
+  transition: transform .15s ease, background .15s ease;
+}
+.btn:active { transform: scale(.98); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn svg { width: 18px; height: 18px; }
+.btn-primary { background: var(--electric); color: var(--white); }
+.btn-primary:hover { background: #1960C0; }
+.btn-gold { background: var(--gold); color: var(--header-bg); }
+.btn-gold:hover { background: #E0A800; }
+.btn-ghost { background: transparent; color: var(--navy); border-color: var(--navy); }
+.btn-ghost:hover { background: var(--navy); color: var(--white); }
+.btn-block { width: 100%; }
+
+/* ---------- Cartes ---------- */
+.card {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px;
+}
+.card + .card { margin-top: 14px; }
+.card-icon {
+  display: grid; place-items: center;
+  width: 44px; height: 44px; border-radius: 12px;
+  background: #E8F0FD; color: var(--electric); margin-bottom: 10px;
+}
+.card-icon svg { width: 22px; height: 22px; }
+
+.grid { display: grid; gap: 14px; grid-template-columns: 1fr; }
+@media (min-width: 640px) { .grid-3 { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 640px) { .grid-2 { grid-template-columns: repeat(2, 1fr); } }
+
+/* ---------- Bannière héros ---------- */
+.hero {
+  position: relative; overflow: hidden;
+  padding: 28px 22px;
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, var(--navy) 0%, #13386B 60%, var(--electric) 100%);
+  color: var(--white);
+  margin-bottom: 22px;
+}
+.hero::after {
+  content: ""; position: absolute; right: -40px; top: -40px;
+  width: 160px; height: 160px; border-radius: 50%;
+  background: var(--gold); opacity: .25;
+}
+.hero h1 { color: var(--white); font-size: 1.45rem; }
+.hero p { opacity: .92; max-width: 46ch; }
+.hero .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; position: relative; z-index: 1; }
+.hero .btn-ghost { color: var(--white); border-color: var(--white); }
+.hero .btn-ghost:hover { background: var(--white); color: var(--navy); }
+@media (min-width: 768px) { .hero { padding: 44px 40px; } .hero h1 { font-size: 2.1rem; } }
+
+/* ---------- Sections ---------- */
+.section { margin: 28px 0; }
+.section-title { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.section-title::before {
+  content: ""; width: 5px; height: 22px; border-radius: 3px; background: var(--gold);
+}
+
+/* Étapes « Comment commander » */
+.steps { counter-reset: step; list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+.steps li {
+  counter-increment: step;
+  position: relative; padding: 14px 14px 14px 58px;
+  background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.steps li::before {
+  content: counter(step);
+  position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+  width: 32px; height: 32px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--navy); color: var(--gold); font-weight: 800;
+}
+.steps strong { display: block; color: var(--navy); }
+
+/* ---------- Alertes et bannière globale ---------- */
+.alert {
+  padding: 12px 14px; border-radius: 12px; margin-bottom: 14px;
+  font-size: .95rem; border-left: 4px solid currentColor;
+}
+.alert-info { background: #E8F0FD; color: #123E7A; }
+.alert-warn { background: #FFF4D6; color: #7A5A00; }
+.alert-error { background: #FDE8E8; color: #8A1C1C; }
+.alert-success { background: #E6F6EC; color: #1E6B3C; }
+
+.global-banner {
+  position: sticky; top: var(--header-h); z-index: 55;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 16px; font-size: .9rem; font-weight: 600;
+}
+.global-banner[hidden] { display: none; }
+.banner-error { background: #FDE8E8; color: #8A1C1C; }
+.banner-warn { background: #FFF4D6; color: #7A5A00; }
+.banner-info { background: #E8F0FD; color: #123E7A; }
+.banner-close {
+  flex: 0 0 auto; width: 36px; height: 36px; border: none; border-radius: 50%;
+  background: transparent; color: inherit; font-size: 1.4rem; line-height: 1; cursor: pointer;
+}
+
+/* ---------- Indicateur de connexion ---------- */
+.status {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: .72rem; font-weight: 700; white-space: nowrap;
+  background: rgba(255, 255, 255, .12); padding: 6px 10px; border-radius: 999px;
+}
+.status::before {
+  content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--grey-600);
+}
+.status-ok::before { background: var(--status-green); }
+.status-warn::before { background: var(--gold); }
+.status-error::before { background: var(--status-red); }
+
+/* ---------- Chargement ---------- */
+.loader {
+  width: 36px; height: 36px; margin: 40px auto;
+  border: 4px solid var(--grey-200); border-top-color: var(--electric);
+  border-radius: 50%; animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- Page provisoire (phases à venir) ---------- */
+.placeholder { text-align: center; padding: 36px 20px; }
+.placeholder-icon {
+  display: grid; place-items: center; margin: 0 auto 14px;
+  width: 64px; height: 64px; border-radius: 50%;
+  background: #E8F0FD; color: var(--electric);
+}
+.placeholder-icon svg { width: 30px; height: 30px; }
+.badge {
+  display: inline-block; padding: 4px 10px; border-radius: 999px;
+  background: var(--gold); color: var(--header-bg); font-size: .75rem; font-weight: 800;
+  margin-bottom: 10px;
+}
+.placeholder p { color: var(--grey-600); }
+.placeholder .btn { margin-top: 10px; }
+
+/* ---------- Pied de page ---------- */
+.footer-links { margin-top: 6px; }
+.site-footer {
+  margin-top: 32px; padding: 20px 0 0; border-top: 1px solid var(--grey-200);
+  color: var(--grey-600); font-size: .85rem; text-align: center;
+}
+
+/* Logo SVG de l'en-tête */
+.brand-logo { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 10px; object-fit: cover; }
+.header-tools { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.lang-select { background: rgba(255,255,255,.14); color: #fff; border: 0; border-radius: 999px; padding: 7px 8px; font-size: .78rem; max-width: 110px; }
+.lang-select option { color: #000; }
+.icon-btn { width: 36px; height: 36px; border-radius: 50%; border: 0; background: rgba(255,255,255,.14); color: #fff; display: grid; place-items: center; cursor: pointer; }
+.icon-btn svg { width: 18px; height: 18px; }
+
+
+/* ---------- Guide et documents légaux ---------- */
+.legal { max-width: 760px; margin: 0 auto; }
+.legal-hero { width: 100%; height: auto; border-radius: 12px; margin-bottom: 14px; }
+.legal h2 { margin-top: 18px; font-size: 1.05rem; }
+.guide-steps { list-style: none; padding: 0; margin: 14px 0; display: grid; gap: 10px; }
+.guide-step { display: flex; gap: 12px; align-items: flex-start; padding: 12px; border-radius: 12px; background: var(--grey-100); }
+.guide-step strong { color: var(--heading); }
+.guide-step p { margin: 2px 0 0; color: var(--grey-600); font-size: .95rem; }
+.guide-icon {
+  flex: 0 0 auto; width: 42px; height: 42px; border-radius: 50%;
+  display: grid; place-items: center; background: #E8F0FD; color: var(--electric);
+}
+.guide-icon svg { width: 22px; height: 22px; }
+.guide-list { padding-left: 20px; }
+.guide-list li { margin-bottom: 8px; }
+.help-links { display: grid; gap: 8px; margin-top: 8px; }
+.help-links .btn svg { width: 18px; height: 18px; }
+.footer-links { margin-top: 6px; }
+.hero-actions-dark { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+
+.admin-actions.wrap { flex-wrap: wrap; }
+
+/* ---------- Tableau de bord membre ---------- */
+.member-hero { margin: 4px 0 16px; }
+.member-hello { color: var(--grey-600); margin: 0; font-weight: 600; }
+.member-hero h1 { margin: 2px 0 0; }
+.tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 8px; }
+@media (min-width: 640px) { .tiles { grid-template-columns: repeat(4, 1fr); } }
+.tile {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 16px 10px; border-radius: var(--radius); background: var(--white);
+  box-shadow: var(--shadow); color: var(--heading); font-weight: 700; font-size: .92rem; text-align: center;
+}
+.tile:hover { transform: translateY(-2px); }
+.tile-icon {
+  display: grid; place-items: center; width: 46px; height: 46px; border-radius: 14px;
+  background: #E8F0FD; color: var(--electric);
+}
+.tile-icon svg { width: 24px; height: 24px; }

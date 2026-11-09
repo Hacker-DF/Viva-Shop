@@ -1,0 +1,40 @@
+/* ==========================================================================
+   responsive.css — Adaptation tablette et ordinateur
+   (mobile-first : les règles de base ciblent déjà les téléphones)
+   ========================================================================== */
+
+/* Petits écrans : libellés de navigation plus compacts */
+@media (max-width: 360px) {
+  .brand-text small { display: none; }
+  .nav-item { font-size: .62rem; }
+}
+
+/* Tablette et ordinateur : la navigation passe en barre horizontale sous l'en-tête */
+@media (min-width: 768px) {
+  .app-main { padding-bottom: 40px; }
+  .bottom-nav {
+    position: sticky;
+    top: var(--header-h);
+    bottom: auto;
+    height: auto;
+    grid-template-columns: repeat(5, minmax(120px, 180px));
+    justify-content: center;
+    padding: 6px 16px;
+    border-top: none;
+    border-bottom: 1px solid var(--grey-200);
+    box-shadow: none;
+  }
+  .nav-item { flex-direction: row; gap: 8px; font-size: .9rem; min-height: 40px; border-radius: 10px; }
+  .nav-item:hover { background: var(--grey-100); }
+  .nav-item[aria-current="page"] { background: #E8F0FD; }
+  .app-header { padding: 0 32px; }
+}
+
+@media (min-width: 1024px) {
+  .app-main { padding-top: 24px; }
+}
+
+/* Préférence d'animation réduite */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

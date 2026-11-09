@@ -1,0 +1,58 @@
+/* ==========================================================================
+   shop.css — Boutique, cartes produits et fiche produit
+   ========================================================================== */
+.filters { display: grid; gap: 10px; margin-bottom: 16px; }
+.filters input, .filters select {
+  width: 100%; min-height: 46px; padding: 10px 14px;
+  border: 1.5px solid var(--grey-200); border-radius: 12px; background: var(--white);
+}
+.filters-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.filters-row select { font-size: .9rem; }
+
+.product-grid { display: grid; gap: 12px; grid-template-columns: repeat(2, 1fr); margin-bottom: 16px; }
+@media (min-width: 640px) { .product-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1024px) { .product-grid { grid-template-columns: repeat(4, 1fr); gap: 16px; } }
+
+.product-card {
+  display: flex; flex-direction: column; overflow: hidden;
+  background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); color: var(--text);
+}
+.product-img {
+  aspect-ratio: 1 / 1; background: var(--grey-100);
+  display: grid; place-items: center; overflow: hidden;
+}
+.product-img img { width: 100%; height: 100%; object-fit: cover; }
+.product-placeholder { color: var(--grey-600); display: grid; place-items: center; }
+.product-placeholder svg { width: 40px; height: 40px; }
+.product-placeholder.large svg { width: 80px; height: 80px; }
+.product-body { padding: 10px 12px 14px; }
+.product-body h3 { font-size: .95rem; margin: 6px 0 2px; }
+.product-code { color: var(--grey-600); font-size: .78rem; margin: 0; }
+.product-price { color: var(--navy); font-weight: 800; margin: 4px 0 0; }
+
+.status-badge {
+  display: inline-block; padding: 3px 9px; border-radius: 999px;
+  font-size: .7rem; font-weight: 700; color: var(--white); background: var(--c);
+}
+
+.empty { text-align: center; color: var(--grey-600); padding: 24px 0; }
+.center { text-align: center; }
+
+.back { display: inline-block; margin-bottom: 12px; font-weight: 600; }
+.product-detail { display: grid; gap: 16px; }
+@media (min-width: 768px) { .product-detail { grid-template-columns: 1fr 1fr; align-items: start; } }
+.product-img.large { border-radius: var(--radius); aspect-ratio: 4 / 3; }
+.product-detail h1 { margin-top: 8px; }
+.code-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--grey-600); }
+.btn-small { min-height: 36px; padding: 6px 12px; font-size: .85rem; }
+.price-big { font-size: 1.5rem; font-weight: 800; color: var(--navy); margin: 8px 0 0; }
+.price-big small { font-size: .8rem; font-weight: 600; color: var(--grey-600); }
+.old-price { text-decoration: line-through; color: var(--grey-600); margin: 0; }
+.actions { display: grid; gap: 10px; margin-top: 16px; }
+
+/* Tarifs dégressifs */
+.tiers { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: .92rem; }
+.tiers caption { text-align: left; font-weight: 700; color: var(--navy); margin-bottom: 6px; }
+.tiers th, .tiers td { padding: 8px 10px; border-bottom: 1px solid var(--grey-200); text-align: left; }
+.tiers th { color: var(--grey-600); font-weight: 600; }
+.reservation { margin-top: 16px; }
