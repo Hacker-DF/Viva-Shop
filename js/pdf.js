@@ -23,7 +23,7 @@ function loadJsPdf() {
 
 /** Logo du site transformé en URL de données (pour l'intégrer au PDF). */
 async function logoDataUrl() {
-  const response = await fetch('assets/logo.jpg');
+  const response = await fetch('assets/logo-transparent.png');
   const blob = await response.blob();
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -44,11 +44,11 @@ export async function downloadProForma(decl, profile) {
 
   // Filigrane : logo très discret au centre de la page
   doc.setGState(new doc.GState({ opacity: 0.08 }));
-  doc.addImage(logo, 'JPEG', 40, 85, 130, 130);
+  doc.addImage(logo, 'PNG', 40, 85, 130, 130);
   doc.setGState(new doc.GState({ opacity: 1 }));
 
   // En-tête
-  doc.addImage(logo, 'JPEG', 15, 12, 22, 22);
+  doc.addImage(logo, 'PNG', 15, 12, 22, 22);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(18);
   doc.setTextColor(11, 37, 69);

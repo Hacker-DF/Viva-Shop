@@ -140,10 +140,8 @@ button, input, select, textarea { font: inherit; }
   color-scheme: dark;
 }
 
-/* Filigrane : logo en arrière-plan de l'accueil */
-.home-page::before {
-  content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  background: url("../assets/logo.jpg") center 45% / min(72vw, 460px) no-repeat;
-  opacity: .07;
-}
-.home-page .app-main { position: relative; z-index: 1; }
+
+/* Accueil : couleurs du logo (noir, bleu marine, or) */
+:root { --grey-100: #F7F3E8; }
+.hero { background: linear-gradient(135deg, #0B0B0B 0%, #0B2545 55%, #1E6FD9 100%); }
+.btn-gold { box-shadow: 0 4px 14px rgba(242, 183, 5, .35); }

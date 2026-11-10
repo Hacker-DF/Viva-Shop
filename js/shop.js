@@ -2,6 +2,7 @@
  * shop.js — Boutique : recherche, filtres par catégorie, tri, pagination et grille de produits.
  */
 import { escapeHtml, icon } from './ui.js';
+import { t } from './i18n.js';
 import { listCategories, listProducts, STATUS_LABELS, formatFcfa } from './products.js';
 
 const PAGE_SIZE = 24;
@@ -17,9 +18,9 @@ export function productCardHtml(p) {
     <a class="product-card" href="#/produit/${encodeURIComponent(p.code)}">
       <div class="product-img">${image}</div>
       <div class="product-body">
-        <span class="status-badge" style="--c: ${status.color}">${escapeHtml(status.label)}</span>
+        <span class="status-badge" style="--c: ${status.color}">${escapeHtml(t('pstatus.' + p.status))}</span>
         <h3>${escapeHtml(p.name)}</h3>
-        <p class="product-code">Code ${escapeHtml(p.code)}</p>
+        <p class="product-code">${escapeHtml(t('shop.code'))} ${escapeHtml(p.code)}</p>
         <p class="product-price">${escapeHtml(formatFcfa(price))}</p>
       </div>
     </a>`;
@@ -29,24 +30,25 @@ export async function render(container) {
   const categories = await listCategories();
 
   container.innerHTML = `
-    <h1>Boutique</h1>
+    <h1>${escapeHtml(t('shop.title'))}</h1>
+    <p class="hint">Vous ne trouvez pas un produit ? <a href="#/demande">Faites une demande spéciale</a>.</p>
     <form id="filters" class="filters" role="search">
-      <input type="search" name="q" placeholder="Nom ou code (ex. 24ABCDEF)" aria-label="Rechercher un produit">
+      <input type="search" name="q" placeholder="${escapeHtml(t('shop.search'))}" aria-label="${escapeHtml(t('shop.aria'))}">
       <div class="filters-row">
         <select name="category" aria-label="Catégorie">
-          <option value="">Toutes les catégories</option>
+          <option value="">${escapeHtml(t('shop.allcats'))}</option>
           ${categories.map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
         </select>
         <select name="sort" aria-label="Trier">
-          <option value="newest">Nouveautés</option>
-          <option value="price_asc">Prix croissant</option>
-          <option value="price_desc">Prix décroissant</option>
+          <option value="newest">${escapeHtml(t('shop.sort.new'))}</option>
+          <option value="price_asc">${escapeHtml(t('shop.sort.asc'))}</option>
+          <option value="price_desc">${escapeHtml(t('shop.sort.desc'))}</option>
         </select>
       </div>
     </form>
     <div id="grid" class="product-grid" aria-live="polite"></div>
-    <p id="empty" class="empty" hidden>Aucun produit ne correspond à votre recherche.</p>
-    <div class="center"><button id="more" class="btn btn-ghost" type="button" hidden>Afficher plus</button></div>`;
+    <p id="empty" class="empty" hidden>${escapeHtml(t('shop.empty'))}</p>
+    <div class="center"><button id="more" class="btn btn-ghost" type="button" hidden>${escapeHtml(t('shop.more'))}</button></div>`;
 
   const form = container.querySelector('#filters');
   const grid = container.querySelector('#grid');
@@ -71,7 +73,7 @@ export async function render(container) {
       empty.hidden = grid.children.length > 0;
       more.hidden = items.length < PAGE_SIZE;
     } catch (err) {
-      grid.innerHTML = `<div class="alert alert-error">Impossible de charger les produits. ${escapeHtml(err.message)}</div>`;
+      grid.innerHTML = `<div class="alert alert-error">${escapeHtml(t('shop.error'))} ${escapeHtml(err.message)}</div>`;
     }
   }
 

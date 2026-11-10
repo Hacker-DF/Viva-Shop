@@ -27,7 +27,7 @@
   <!-- En-tête -->
   <header class="app-header">
     <a href="#/accueil" class="brand" aria-label="Viva Shop – Accueil">
-      <img class="brand-logo" src="assets/logo.jpg" width="38" height="38" alt="Logo Viva Shop">
+      <img class="brand-logo" src="assets/logo-transparent.png" width="38" height="38" alt="Logo Viva Shop">
       <span class="brand-text">
         <strong>Viva Shop</strong>
         <small id="brand-slogan">Votre passerelle entre la Chine et le Togo</small>
@@ -35,6 +35,10 @@
     </a>
     <div class="header-tools">
       <select id="lang-select" class="lang-select" aria-label="Langue"></select>
+      <span class="bell-wrap">
+        <a id="bell" class="icon-btn" href="#/notifications" aria-label="Notifications"></a>
+        <span id="bell-count" class="bell-count" hidden></span>
+      </span>
       <button id="theme-toggle" class="icon-btn" type="button"></button>
       <span id="connection-status" class="status" role="status" aria-live="polite">Vérification…</span>
     </div>

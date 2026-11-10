@@ -3,20 +3,21 @@
  */
 import { escapeHtml } from './ui.js';
 import { signIn, signUp, validateRegistration, translateError, getSession } from './auth.js';
+import { t } from './i18n.js';
 
-const LOGIN_FIELDS = [
-  { name: 'email', label: 'Email', type: 'email', autocomplete: 'email' },
-  { name: 'password', label: 'Mot de passe', type: 'password', autocomplete: 'current-password' },
+const loginFields = () => [
+  { name: 'email', label: t('auth.email'), type: 'email', autocomplete: 'email' },
+  { name: 'password', label: t('auth.password'), type: 'password', autocomplete: 'current-password' },
 ];
 
-const REGISTER_FIELDS = [
-  { name: 'username', label: 'Nom d’utilisateur', type: 'text', autocomplete: 'username', hint: 'Minuscules, chiffres ou _ (3 à 20)' },
-  { name: 'first_name', label: 'Prénom', type: 'text', autocomplete: 'given-name' },
-  { name: 'last_name', label: 'Nom', type: 'text', autocomplete: 'family-name' },
-  { name: 'phone', label: 'Téléphone (WhatsApp)', type: 'tel', autocomplete: 'tel', hint: 'Exemple : +228 90 00 00 00' },
-  { name: 'city', label: 'Ville (facultatif)', type: 'text', autocomplete: 'address-level2', optional: true },
-  { name: 'email', label: 'Email', type: 'email', autocomplete: 'email', hint: 'Sert à vous connecter et à réinitialiser votre mot de passe' },
-  { name: 'password', label: 'Mot de passe', type: 'password', autocomplete: 'new-password', hint: '8 caractères minimum' },
+const registerFields = () => [
+  { name: 'username', label: t('auth.username'), type: 'text', autocomplete: 'username', hint: t('auth.username.hint') },
+  { name: 'first_name', label: t('auth.firstname'), type: 'text', autocomplete: 'given-name' },
+  { name: 'last_name', label: t('auth.lastname'), type: 'text', autocomplete: 'family-name' },
+  { name: 'phone', label: t('auth.phone'), type: 'tel', autocomplete: 'tel', hint: 'Exemple : +228 90 00 00 00' },
+  { name: 'city', label: t('auth.city'), type: 'text', autocomplete: 'address-level2', optional: true },
+  { name: 'email', label: t('auth.email'), type: 'email', autocomplete: 'email', hint: t('auth.email.hint') },
+  { name: 'password', label: t('auth.password'), type: 'password', autocomplete: 'new-password', hint: t('auth.password.hint') },
 ];
 
 /** Champ de formulaire accessible (libellé, aide, message d'erreur). Exporté pour le profil. */
@@ -77,7 +78,6 @@ function mount(container, { title, fields, submitLabel, footer, validate, onSubm
 }
 
 export async function render(container, { route }) {
-  // Déjà connecté : pas de raison d'afficher la connexion
   if (await getSession()) {
     window.location.hash = '#/compte';
     return;
@@ -85,10 +85,10 @@ export async function render(container, { route }) {
 
   if (route.view === 'register') {
     mount(container, {
-      title: 'Créer mon compte',
-      fields: REGISTER_FIELDS,
-      submitLabel: 'Créer mon compte',
-      footer: 'Déjà inscrit ? <a href="#/connexion">Se connecter</a>',
+      title: t('auth.register'),
+      fields: registerFields(),
+      submitLabel: t('auth.register'),
+      footer: `${escapeHtml(t('auth.haveaccount'))} <a href="#/connexion">${escapeHtml(t('auth.login'))}</a>`,
       validate: validateRegistration,
       onSubmit: async (data, msg) => {
         const { session } = await signUp(data);
@@ -96,9 +96,8 @@ export async function render(container, { route }) {
           window.location.hash = '#/compte';
           return;
         }
-        // Confirmation par email activée dans Supabase : pas de session immédiate
         msg.className = 'alert alert-success';
-        msg.textContent = 'Compte créé. Confirmez votre adresse email, puis connectez-vous.';
+        msg.textContent = t('auth.confirmmail');
         msg.hidden = false;
       },
     });
@@ -106,14 +105,14 @@ export async function render(container, { route }) {
   }
 
   mount(container, {
-    title: 'Connexion',
-    fields: LOGIN_FIELDS,
-    submitLabel: 'Se connecter',
-    footer: 'Pas encore de compte ? <a href="#/inscription">Créer un compte</a>',
+    title: t('auth.login'),
+    fields: loginFields(),
+    submitLabel: t('auth.submit.login'),
+    footer: `${escapeHtml(t('auth.noaccount'))} <a href="#/inscription">${escapeHtml(t('auth.create'))}</a>`,
     validate: (d) => {
       const errors = {};
-      if (!d.email) errors.email = 'Email requis';
-      if (!d.password) errors.password = 'Mot de passe requis';
+      if (!d.email) errors.email = t('auth.email.required');
+      if (!d.password) errors.password = t('auth.password.required');
       return errors;
     },
     onSubmit: async (data) => {

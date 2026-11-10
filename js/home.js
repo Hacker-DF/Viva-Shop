@@ -158,16 +158,25 @@ function memberPage(profile, data) {
 }
 
 export async function render(container) {
+  // Annonces actives (la base ne renvoie que celles de la période)
+  let news = [];
+  try {
+    const { data } = await supabase.from('announcements').select('id, title, body').order('starts_at', { ascending: false }).limit(3);
+    news = data || [];
+  } catch { news = []; }
+  const newsHtml = news.length
+    ? `<section class="announcements">${news.map((a) => `<article class="announcement"><strong>${escapeHtml(a.title)}</strong>${a.body ? `<p>${escapeHtml(a.body)}</p>` : ''}</article>`).join('')}</section>`
+    : '';
   // Profil absent (Supabase non configuré, hors connexion) : version visiteur
   let profile = null;
   try { profile = await getProfile(); } catch { profile = null; }
 
   if (!profile) {
-    container.innerHTML = guestPage();
+    container.innerHTML = newsHtml + guestPage();
     return;
   }
 
   let data = { open: [], declarations: [] };
   try { data = await loadMemberData(); } catch { /* le tableau de bord reste affiché sans ces données */ }
-  container.innerHTML = memberPage(profile, data);
+  container.innerHTML = newsHtml + memberPage(profile, data);
 }

@@ -8,6 +8,8 @@ import { showBanner, icon } from './ui.js';
 import { t, setLang, getLang, onLangChange, LANGUAGES } from './i18n.js';
 
 import { initTheme, toggleTheme, currentTheme } from './theme.js';
+import { mountFloatingMenu } from './floating.js';
+import { startBell } from './notifications.js';
 
 const outlet = document.getElementById('app');
 const navEl = document.getElementById('bottom-nav');
@@ -97,6 +99,8 @@ function boot() {
   onLangChange(refreshLanguage);
   initRouter(outlet);
   registerServiceWorker();
+  mountFloatingMenu();
+  startBell();
   setStatus('checking');
   checkBackend();
 }

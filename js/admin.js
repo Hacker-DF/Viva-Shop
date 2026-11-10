@@ -22,6 +22,24 @@ export async function render(container) {
     return;
   }
   const codes = await getRoleCodes();
+  if (window.location.hash.split('/')[2] === 'demandes') {
+    return (await import('./special-orders.js')).renderStaff(container);
+  }
+  if (window.location.hash.split('/')[2] === 'annonces') {
+    return (await import('./announcements-admin.js')).render(container);
+  }
+  if (window.location.hash.split('/')[2] === 'support') {
+    return (await import('./support.js')).renderStaff(container);
+  }
+  if (window.location.hash.split('/')[2] === 'paiements') {
+    return (await import('./payments-admin.js')).render(container);
+  }
+  if (window.location.hash.split('/')[2] === 'tableau') {
+    return (await import('./dashboard-admin.js')).render(container);
+  }
+  if (window.location.hash.split('/')[2] === 'logistique') {
+    return (await import('./logistics-admin.js')).render(container);
+  }
   if (!codes.some((c) => CATALOGUE_ROLES.includes(c))) {
     container.innerHTML = '<div class="alert alert-error">Accès réservé à l’équipe Viva Shop.</div>';
     return;
@@ -45,6 +63,8 @@ export async function render(container) {
   container.innerHTML = `
     <div class="admin-toolbar">
       <h1>Produits</h1>
+      <a class="btn btn-ghost btn-small" href="#/admin/annonces">Annonces</a>
+      ${isPrincipal ? '<a class="btn btn-ghost btn-small" href="#/admin/tableau">Tableau de bord</a>' : ''}
       <a class="btn btn-ghost btn-small" href="#/admin/campagnes">Campagnes</a>
       ${isPrincipal ? '<a class="btn btn-ghost btn-small" href="#/admin/equipe">Équipe</a>' : ''}
       <button id="new" class="btn btn-gold" type="button">${icon('tag')} Nouveau produit</button>
@@ -113,7 +133,7 @@ function rowHtml(p, categoryName) {
 }
 
 /** Formulaire d'ajout (product = null) ou de modification. */
-function openForm(container, product, categories, say, onSaved) {
+async function openForm(container, product, categories, say, onSaved) {
   const wrap = container.querySelector('#form-wrap');
   const v = product || {};
   const statusOptions = Object.entries(STATUS_LABELS)
@@ -149,6 +169,7 @@ function openForm(container, product, categories, say, onSaved) {
   const form = wrap.querySelector('form');
   const err = wrap.querySelector('#form-error');
   wrap.querySelector('[data-cancel]').addEventListener('click', () => { wrap.hidden = true; wrap.innerHTML = ''; });
+  if (product) renderColorManager(wrap, product.id, say);
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -198,4 +219,75 @@ function openForm(container, product, categories, say, onSaved) {
     if (error) { err.textContent = translateError(error); err.hidden = false; return; }
     onSaved(product ? 'Produit modifié.' : `Produit créé. Code : ${data.code}`);
   });
+}
+
+
+/** Couleurs d'un produit (nom et photo), affichées sous le formulaire de modification. */
+async function renderColorManager(wrap, productId, say) {
+  const { data: colors, error } = await supabase.from('product_colors')
+    .select('id, name, photo_url').eq('product_id', productId).order('name');
+  if (error) { say(translateError(error), 'error'); return; }
+
+  const section = document.createElement('section');
+  section.className = 'card admin-form';
+  section.id = 'color-manager';
+  const reload = () => { section.remove(); renderColorManager(wrap, productId, say); };
+
+  section.innerHTML = `
+    <h2>Couleurs et photos</h2>
+    <p class="hint">Chaque couleur a sa photo. Elle s’affiche automatiquement lors de l’ajout d’un colis.</p>
+    <ul class="campaign-items">
+      ${colors.map((c) => `
+        <li>${c.photo_url ? `<img class="color-thumb" src="${escapeHtml(c.photo_url)}" alt="">` : ''}
+          ${escapeHtml(c.name)}
+          <button type="button" class="chip-x" data-del="${c.id}" aria-label="Supprimer la couleur">×</button>
+        </li>`).join('') || '<li class="product-code">Aucune couleur pour ce produit.</li>'}
+    </ul>
+    <form id="color-add" novalidate>
+      <label>Nom de la couleur<input name="name" maxlength="40" required></label>
+      <label>Photo de cette couleur (JPG, PNG ou WebP, 5 Mo maximum)
+        <input name="photo" type="file" accept="image/jpeg,image/png,image/webp">
+      </label>
+      <button class="btn btn-ghost btn-block" type="submit">Ajouter la couleur</button>
+    </form>`;
+
+  section.addEventListener('click', async (e) => {
+    const del = e.target.closest('button[data-del]');
+    if (!del) return;
+    const { error: delError } = await supabase.from('product_colors').delete().eq('id', del.dataset.del);
+    if (delError) { say(translateError(delError), 'error'); return; }
+    say('Couleur supprimée.', 'success');
+    reload();
+  });
+
+  section.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const name = String(fd.get('name')).trim();
+    const photo = fd.get('photo');
+    if (!name) { say('Indiquez le nom de la couleur.', 'error'); return; }
+
+    let photoUrl = null;
+    if (photo && photo.size > 0) {
+      if (photo.size > 5 * 1024 * 1024) { say('Photo trop lourde (5 Mo maximum).', 'error'); return; }
+      const ext = (photo.name.split('.').pop() || 'jpg').toLowerCase();
+      const path = `couleurs/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error: upError } = await supabase.storage.from('produits')
+        .upload(path, photo, { contentType: photo.type, upsert: false });
+      if (upError) { say(translateError(upError), 'error'); return; }
+      photoUrl = supabase.storage.from('produits').getPublicUrl(path).data.publicUrl;
+    }
+
+    const { error: insError } = await supabase.from('product_colors')
+      .insert({ product_id: productId, name, photo_url: photoUrl });
+    if (insError) {
+      say(insError.message.includes('duplicate') ? 'Cette couleur existe déjà pour ce produit.' : translateError(insError), 'error');
+      return;
+    }
+    say('Couleur ajoutée.', 'success');
+    reload();
+  });
+
+  wrap.appendChild(section);
+  // Le contenu est déjà prêt : l'affichage ne dépend pas de la liste ci-dessus
 }

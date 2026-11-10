@@ -6,6 +6,7 @@ import { listMyReservations, formatFcfa } from './products.js';
 import { listMyDeclarations, markWhatsappSent, PAYMENT_STATUS, METHODS } from './payments.js';
 import { getSession, getProfile, translateError } from './auth.js';
 import { downloadProForma } from './pdf.js';
+import { myShipmentsHtml } from './logistics-admin.js';
 import { APP_CONFIG } from './config.js';
 
 const waLink = (phone, text) => `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`;
@@ -37,6 +38,7 @@ export async function render(container) {
     listMyDeclarations(), listMyReservations(), getProfile(),
   ]);
   const byId = Object.fromEntries(payments.map((d) => [d.id, d]));
+  const shipmentsHtml = await myShipmentsHtml();
 
   container.innerHTML = `
     <h1>Mes paiements</h1>
@@ -66,6 +68,7 @@ export async function render(container) {
       <p class="hint">Pour envoyer le PDF : téléchargez le pro forma, ouvrez WhatsApp avec le bouton de l’assistant, puis joignez le PDF manuellement. WhatsApp ne peut pas joindre le fichier automatiquement.</p>`
       : '<p class="empty">Aucun paiement déclaré pour le moment.</p>'}
 
+    ${shipmentsHtml}
     <h2 class="section-title">Mes réservations</h2>
     <p class="hint">Une réservation n’est pas un paiement.</p>
     ${reservations.length ? `

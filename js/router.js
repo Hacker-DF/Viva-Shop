@@ -25,6 +25,9 @@ export const ROUTES = {
   guide:           { label: 'Guide d’utilisation', icon: 'file-text', phase: 1, hidden: true, view: 'guide', load: () => import('./legal.js') },
   confidentialite: { label: 'Confidentialité', icon: 'lock', phase: 1, hidden: true, view: 'privacy', load: () => import('./legal.js') },
   conditions:      { label: 'Conditions générales', icon: 'shield', phase: 1, hidden: true, view: 'terms', load: () => import('./legal.js') },
+  support:         { label: 'Signaler un problème', icon: 'message', phase: 8, hidden: true, load: () => import('./support.js') },
+  notifications:   { label: 'Notifications', icon: 'bell', phase: 10, hidden: true, load: () => import('./notifications.js') },
+  demande:         { label: 'Demande spéciale', icon: 'package', phase: 11, hidden: true, load: () => import('./special-orders.js') },
   declarer:        { label: 'Déclarer un paiement', icon: 'credit-card', phase: 5, hidden: true, load: () => import('./declare.js') },
   admin:     { label: 'Administration', icon: 'shield', phase: 3, hidden: true, load: () => import('./admin.js') },
   compte:    { label: 'Mon compte', icon: 'user',    phase: 2, load: () => import('./profile.js') },
@@ -82,7 +85,6 @@ export async function renderCurrent(outlet) {
       </div>`;
   }
 
-  document.body.classList.toggle('home-page', name === 'accueil');
   document.title = `${route.label} · ${APP_CONFIG.name}`;
   outlet.focus({ preventScroll: true });
   window.scrollTo(0, 0);

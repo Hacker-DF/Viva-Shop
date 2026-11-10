@@ -27,3 +27,16 @@
 .campaign-items { list-style: none; padding: 0; margin: 6px 0; display: grid; gap: 4px; font-size: .9rem; }
 .add-product { display: flex; gap: 8px; margin-top: 8px; }
 .add-product select { flex: 1; min-height: 40px; padding: 6px 10px; border: 1.5px solid var(--grey-200); border-radius: 10px; background: var(--white); }
+
+/* Tableau de bord */
+.kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 8px; }
+@media (min-width: 768px) { .kpis { grid-template-columns: repeat(4, 1fr); } }
+.kpi { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px; display: grid; gap: 4px; }
+.kpi span { color: var(--grey-600); font-size: .82rem; font-weight: 600; }
+.kpi strong { color: var(--heading); font-size: 1.25rem; }
+.bars { display: grid; gap: 8px; margin-top: 8px; }
+.bar-row { display: grid; grid-template-columns: 1fr 2fr auto; gap: 8px; align-items: center; font-size: .85rem; }
+.bar-track { background: var(--grey-200); border-radius: 6px; height: 12px; overflow: hidden; }
+.bar { height: 100%; border-radius: 6px; }
+.search-input { width: 100%; min-height: 44px; padding: 10px 14px; border: 1.5px solid var(--grey-200); border-radius: 12px; background: var(--white); margin-bottom: 10px; }
+.admin-row[hidden] { display: none; }

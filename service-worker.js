@@ -8,7 +8,7 @@
  *
  * ⚠️ Incrémenter CACHE_VERSION à chaque mise à jour des fichiers statiques.
  */
-const CACHE_VERSION = 'v15';
+const CACHE_VERSION = 'v34';
 const CACHE_NAME = `cct-static-${CACHE_VERSION}`;
 
 const STATIC_ASSETS = [
@@ -22,6 +22,7 @@ const STATIC_ASSETS = [
   'css/shop.css',
   'css/admin.css',
   'assets/logo.jpg',
+  'assets/logo-transparent.png',
   'css/responsive.css',
   'js/app.js',
   'js/config.js',
@@ -47,6 +48,15 @@ const STATIC_ASSETS = [
   'js/payments.js',
   'js/declare.js',
   'js/pdf.js',
+  'js/i18n-extra.js',
+  'js/payments-admin.js',
+  'js/floating.js',
+  'js/logistics-admin.js',
+  'js/dashboard-admin.js',
+  'js/support.js',
+  'js/announcements-admin.js',
+  'js/notifications.js',
+  'js/special-orders.js',
   'assets/icons/icon-192.png',
   'assets/icons/icon-512.png',
 ];

@@ -74,6 +74,10 @@ const STRINGS = {
   },
 };
 
+import { EXTRA } from './i18n-extra.js';
+
+for (const lang of Object.keys(EXTRA)) Object.assign(STRINGS[lang], EXTRA[lang]);
+
 const LANG_NAMES = { fr: 'Français', en: 'English', ewe: 'Eʋegbe' };
 const STORAGE_KEY = 'cct-lang';
 const listeners = [];

@@ -1,0 +1,198 @@
+/**
+ * dashboard-admin.js — Tableau de bord de l'administrateur principal :
+ * chiffres clés, répartition des paiements, réclamations, journal, clients et fiche client
+ * (suspension incluse). Les droits sont vérifiés par la base.
+ */
+import { escapeHtml } from './ui.js';
+import { supabase } from './supabase.js';
+import { getSession, getRoleCodes, translateError } from './auth.js';
+import { PAYMENT_STATUS } from './payments.js';
+import { formatFcfa } from './products.js';
+
+/** Nombre de lignes d'une table, avec un filtre optionnel. */
+async function countRows(table, filter = (q) => q) {
+  const { count, error } = await filter(supabase.from(table).select('*', { count: 'exact', head: true }));
+  if (error) throw error;
+  return count || 0;
+}
+
+const kpi = (label, value) =>
+  `<div class="kpi"><span>${escapeHtml(label)}</span><strong>${escapeHtml(String(value))}</strong></div>`;
+
+export async function render(container) {
+  const session = await getSession();
+  if (!session) {
+    container.innerHTML = '<div class="alert alert-warn">Connectez-vous pour accéder à cette page.</div>';
+    return;
+  }
+  const codes = await getRoleCodes();
+  if (!codes.includes('administrateur_principal')) {
+    container.innerHTML = '<div class="alert alert-error">Réservé à l’administrateur principal.</div>';
+    return;
+  }
+
+  // Adresse #/admin/tableau/ID : fiche d'un client
+  const clientId = window.location.hash.split('/')[3];
+  if (clientId) return renderClient(container, clientId);
+
+  const [clients, products, reservations, toVerify, confirmed, inTransit, delivered, openTickets,
+    amounts, statuses, profiles, audit] = await Promise.all([
+    countRows('profiles'),
+    countRows('products', (q) => q.eq('is_archived', false)),
+    countRows('reservations'),
+    countRows('payment_declarations', (q) => q.in('status', ['en_attente_verification', 'en_cours_verification'])),
+    countRows('payment_declarations', (q) => q.eq('status', 'paiement_confirme')),
+    countRows('shipments', (q) => q.neq('status', 'livre')),
+    countRows('shipments', (q) => q.eq('status', 'livre')),
+    countRows('support_tickets', (q) => q.neq('status', 'resolue')),
+    supabase.from('payment_declarations').select('amount').eq('status', 'paiement_confirme'),
+    supabase.from('payment_declarations').select('status'),
+    supabase.from('profiles').select('id, username, first_name, last_name, phone, city, created_at, is_suspended')
+      .order('created_at', { ascending: false }).limit(200),
+    supabase.from('audit_logs').select('action, created_at').order('created_at', { ascending: false }).limit(15),
+  ]);
+  for (const r of [amounts, statuses, profiles, audit]) if (r.error) throw r.error;
+
+  const revenue = amounts.data.reduce((sum, r) => sum + r.amount, 0);
+  const byStatus = {};
+  statuses.data.forEach((r) => { byStatus[r.status] = (byStatus[r.status] || 0) + 1; });
+  const maxCount = Math.max(1, ...Object.values(byStatus));
+
+  container.innerHTML = `
+    <div class="admin-toolbar"><h1>Tableau de bord</h1></div>
+
+    <div class="kpis">
+      ${kpi('Clients', clients)}
+      ${kpi('Produits actifs', products)}
+      ${kpi('Réservations', reservations)}
+      ${kpi('Déclarations à vérifier', toVerify)}
+      ${kpi('Paiements confirmés', confirmed)}
+      ${kpi('Chiffre d’affaires', formatFcfa(revenue))}
+      ${kpi('Colis en transit', inTransit)}
+      ${kpi('Livraisons terminées', delivered)}
+      ${kpi('Réclamations ouvertes', openTickets)}
+    </div>
+
+    <section class="card">
+      <h2>Déclarations par statut</h2>
+      <div class="bars">
+        ${Object.entries(PAYMENT_STATUS).map(([key, st]) => {
+          const n = byStatus[key] || 0;
+          return `<div class="bar-row">
+            <span>${escapeHtml(st.label)}</span>
+            <div class="bar-track"><div class="bar" style="width: ${Math.round((n / maxCount) * 100)}%; background: ${st.color}"></div></div>
+            <strong>${n}</strong>
+          </div>`;
+        }).join('')}
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Dernières actions</h2>
+      <ul class="timeline">
+        ${audit.data.map((a) => `<li><span>${escapeHtml(a.action.replace(/_/g, ' '))}</span>
+          <small>${escapeHtml(new Date(a.created_at).toLocaleString('fr-FR'))}</small></li>`).join('')
+          || '<li>Aucune action enregistrée.</li>'}
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">Clients</h2>
+      <input id="client-search" class="search-input" type="search" placeholder="Rechercher par nom ou nom d’utilisateur">
+      <ul class="admin-list" id="client-list">
+        ${profiles.data.map(clientRowHtml).join('') || '<li class="empty">Aucun client pour le moment.</li>'}
+      </ul>
+    </section>`;
+
+  const search = container.querySelector('#client-search');
+  search.addEventListener('input', () => {
+    const term = search.value.trim().toLowerCase();
+    container.querySelectorAll('#client-list .admin-row').forEach((row) => {
+      row.hidden = term !== '' && !row.dataset.search.includes(term);
+    });
+  });
+}
+
+function clientRowHtml(p) {
+  const name = `${p.first_name} ${p.last_name}`;
+  return `
+    <li class="admin-row" data-search="${escapeHtml(`${name} ${p.username}`.toLowerCase())}">
+      <div class="admin-row-main">
+        <strong>${escapeHtml(name)}${p.is_suspended ? ' · <span class="status-badge" style="--c: var(--status-red)">Suspendu</span>' : ''}</strong>
+        <span class="product-code">@${escapeHtml(p.username)} · ${escapeHtml(p.phone || '')}${p.city ? ' · ' + escapeHtml(p.city) : ''}</span>
+        <span class="product-code">Inscrit le ${escapeHtml(new Date(p.created_at).toLocaleDateString('fr-FR'))}</span>
+      </div>
+      <div class="admin-actions">
+        <a class="btn btn-ghost btn-small" href="#/admin/tableau/${p.id}">Voir</a>
+      </div>
+    </li>`;
+}
+
+/** Fiche client : déclarations, activité et suspension du compte. */
+async function renderClient(container, id) {
+  const { data: p, error } = await supabase.from('profiles').select('*').eq('id', id).maybeSingle();
+  if (error) throw error;
+  if (!p) {
+    container.innerHTML = '<div class="alert alert-warn">Client introuvable.</div><a href="#/admin/tableau">← Tableau de bord</a>';
+    return;
+  }
+
+  const [decls, reservationCount, shipmentCount, ticketCount] = await Promise.all([
+    supabase.from('payment_declarations')
+      .select('order_number, amount, status, created_at, products(name)')
+      .eq('user_id', id).order('created_at', { ascending: false }).limit(30),
+    countRows('reservations', (q) => q.eq('user_id', id)),
+    countRows('shipments', (q) => q.eq('user_id', id)),
+    countRows('support_tickets', (q) => q.eq('user_id', id)),
+  ]);
+  if (decls.error) throw decls.error;
+
+  container.innerHTML = `
+    <a class="back" href="#/admin/tableau">← Tableau de bord</a>
+    <div class="admin-toolbar"><h1>${escapeHtml(p.first_name)} ${escapeHtml(p.last_name)}</h1></div>
+    ${p.is_suspended ? `<div class="alert alert-error">Compte suspendu${p.suspension_reason ? ' : ' + escapeHtml(p.suspension_reason) : ''}. Le client ne peut plus réserver ni déclarer de paiement.</div>` : ''}
+    <div id="client-msg" class="alert" role="status" hidden></div>
+
+    <section class="card">
+      <p>@${escapeHtml(p.username)} · ${escapeHtml(p.phone || '')}${p.city ? ' · ' + escapeHtml(p.city) : ''}</p>
+      <div class="kpis">
+        ${kpi('Réservations', reservationCount)}
+        ${kpi('Colis', shipmentCount)}
+        ${kpi('Demandes', ticketCount)}
+      </div>
+      <button id="suspend" class="btn ${p.is_suspended ? 'btn-primary' : 'btn-ghost'} btn-block" type="button">
+        ${p.is_suspended ? 'Réactiver le compte' : 'Suspendre le compte'}
+      </button>
+    </section>
+
+    <h2 class="section-title">Déclarations de paiement</h2>
+    <ul class="admin-list">
+      ${decls.data.map((d) => `
+        <li class="admin-row">
+          <div class="admin-row-main">
+            <strong>${escapeHtml(d.order_number)} · ${escapeHtml(d.products?.name || '')}</strong>
+            <span class="product-code">${escapeHtml(formatFcfa(d.amount))} · ${escapeHtml(PAYMENT_STATUS[d.status]?.label || d.status)}</span>
+          </div>
+        </li>`).join('') || '<li class="empty">Aucune déclaration.</li>'}
+    </ul>`;
+
+  const msg = container.querySelector('#client-msg');
+  container.querySelector('#suspend').addEventListener('click', async () => {
+    const suspend = !p.is_suspended;
+    let reason = null;
+    if (suspend) {
+      reason = window.prompt('Raison de la suspension (obligatoire) :');
+      if (!reason || !reason.trim()) return;
+    }
+    const { error: rpcError } = await supabase.rpc('set_account_suspended', {
+      p_user: id, p_suspended: suspend, p_reason: reason ? reason.trim() : null,
+    });
+    if (rpcError) {
+      msg.className = 'alert alert-error';
+      msg.textContent = translateError(rpcError);
+      msg.hidden = false;
+      return;
+    }
+    renderClient(container, id);
+  });
+}
