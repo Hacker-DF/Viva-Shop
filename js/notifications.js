@@ -3,6 +3,7 @@
  * Les notifications sont créées par la base ; ce module ne fait que les lire.
  */
 import { escapeHtml, icon } from './ui.js';
+import { t } from './i18n.js';
 import { supabase } from './supabase.js';
 import { getSession } from './auth.js';
 
@@ -31,7 +32,7 @@ export function startBell() {
 export async function render(container) {
   const session = await getSession();
   if (!session) {
-    container.innerHTML = '<div class="alert alert-warn">Connectez-vous pour voir vos notifications.</div><a class="btn btn-primary" href="#/connexion">Se connecter</a>';
+    container.innerHTML = `<div class="alert alert-warn">${escapeHtml(t('notif.guest'))}</div><a class="btn btn-primary" href="#/connexion">${escapeHtml(t('common.login'))}</a>`;
     return;
   }
   const { data, error } = await supabase.from('notifications')
@@ -42,8 +43,8 @@ export async function render(container) {
 
   container.innerHTML = `
     <div class="admin-toolbar">
-      <h1>Notifications</h1>
-      ${hasUnread ? '<button id="read-all" class="btn btn-ghost btn-small" type="button">Tout marquer comme lu</button>' : ''}
+      <h1>${escapeHtml(t('notif.title'))}</h1>
+      ${hasUnread ? `<button id="read-all" class="btn btn-ghost btn-small" type="button">${escapeHtml(t('notif.readall'))}</button>` : ''}
     </div>
     <ul class="admin-list">
       ${data.map((n) => `
@@ -53,7 +54,7 @@ export async function render(container) {
             ${n.body ? `<span class="product-code">${escapeHtml(n.body)}</span>` : ''}
             <small>${escapeHtml(new Date(n.created_at).toLocaleString('fr-FR'))}</small>
           </a>
-        </li>`).join('') || '<li class="empty">Aucune notification pour le moment.</li>'}
+        </li>`).join('') || `<li class="empty">${escapeHtml(t('notif.none'))}</li>`}
     </ul>`;
 
   container.querySelector('#read-all')?.addEventListener('click', async () => {

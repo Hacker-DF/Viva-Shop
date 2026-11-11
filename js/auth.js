@@ -7,6 +7,7 @@ import { supabase } from './supabase.js';
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 const PHONE_RE = /^\+?[0-9 ]{8,20}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PASSWORD_RE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9]).{8,}$/;
 
 let profileCache = null;
 
@@ -35,7 +36,7 @@ export function validateRegistration(d) {
   if ((d.last_name || '').trim().length < 2) errors.last_name = 'Au moins 2 caractères';
   if (!PHONE_RE.test((d.phone || '').trim())) errors.phone = 'Numéro invalide, ex. +228 90 00 00 00';
   if (!EMAIL_RE.test((d.email || '').trim())) errors.email = 'Email invalide';
-  if ((d.password || '').length < 8) errors.password = 'Au moins 8 caractères';
+  if (!PASSWORD_RE.test(d.password || '')) errors.password = '8 caractères minimum, avec une majuscule, une minuscule et un symbole';
   return errors;
 }
 

@@ -145,3 +145,17 @@ button, input, select, textarea { font: inherit; }
 :root { --grey-100: #F7F3E8; }
 .hero { background: linear-gradient(135deg, #0B0B0B 0%, #0B2545 55%, #1E6FD9 100%); }
 .btn-gold { box-shadow: 0 4px 14px rgba(242, 183, 5, .35); }
+
+/* Thème sombre : éléments de l'en-tête et de la navigation bien contrastés */
+:root[data-theme="dark"] .app-header { background: #0B2545; }
+:root[data-theme="dark"] .brand-text strong,
+:root[data-theme="dark"] .brand-text small { color: #FFFFFF; }
+:root[data-theme="dark"] .lang-select {
+  background: rgba(255, 255, 255, .22); border-color: rgba(255, 255, 255, .55); color: #FFFFFF;
+}
+:root[data-theme="dark"] .lang-select option { background: #1A2333; color: #E7ECF4; }
+:root[data-theme="dark"] .icon-btn { background: rgba(255, 255, 255, .22); color: #FFFFFF; }
+:root[data-theme="dark"] .nav-item { color: #D0D8E6; }
+:root[data-theme="dark"] .nav-item[aria-current="page"],
+:root[data-theme="dark"] .nav-item[aria-current="page"] svg { color: #6FA8FF; stroke: #6FA8FF; }
+input::placeholder, textarea::placeholder { color: var(--grey-600); opacity: .55; }

@@ -79,6 +79,10 @@ import { EXTRA } from './i18n-extra.js';
 for (const lang of Object.keys(EXTRA)) Object.assign(STRINGS[lang], EXTRA[lang]);
 import { PAY } from './i18n-pay.js';
 for (const lang of Object.keys(PAY)) Object.assign(STRINGS[lang], PAY[lang]);
+import { MORE } from './i18n-more.js';
+for (const lang of Object.keys(MORE)) Object.assign(STRINGS[lang], MORE[lang]);
+import { PROFILE } from './i18n-profile.js';
+for (const lang of Object.keys(PROFILE)) Object.assign(STRINGS[lang], PROFILE[lang]);
 
 const LANG_NAMES = { fr: 'Français', en: 'English' };
 const STORAGE_KEY = 'cct-lang';

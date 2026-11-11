@@ -194,6 +194,16 @@ async function renderClient(container, id) {
       </button>
     </section>
 
+    <section class="card">
+      <h2>Écrire à ce client</h2>
+      <p class="hint">Le message arrive dans ses notifications.</p>
+      <form id="send-msg" class="admin-form" novalidate>
+        <label>Titre<input name="title" maxlength="120" required></label>
+        <label>Message (500 caractères maximum)<textarea name="body" rows="3" maxlength="500"></textarea></label>
+        <button class="btn btn-primary btn-block" type="submit">Envoyer le message</button>
+      </form>
+    </section>
+
     <h2 class="section-title">Déclarations de paiement</h2>
     <ul class="admin-list">
       ${decls.data.map((d) => `
@@ -204,6 +214,19 @@ async function renderClient(container, id) {
           </div>
         </li>`).join('') || '<li class="empty">Aucune déclaration.</li>'}
     </ul>`;
+
+  container.querySelector('#send-msg').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const feedback = container.querySelector('#client-msg');
+    const { error: sendError } = await supabase.rpc('send_user_message', {
+      p_user: id, p_title: String(fd.get('title')).trim(), p_body: String(fd.get('body')).trim(),
+    });
+    feedback.className = sendError ? 'alert alert-error' : 'alert alert-success';
+    feedback.textContent = sendError ? translateError(sendError) : 'Message envoyé au client.';
+    feedback.hidden = false;
+    if (!sendError) e.currentTarget.reset();
+  });
 
   const msg = container.querySelector('#client-msg');
   container.querySelector('#suspend').addEventListener('click', async () => {

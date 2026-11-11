@@ -4,6 +4,7 @@
  * Équipe : liste, prise en charge et réponse (renderStaff).
  */
 import { escapeHtml, icon } from './ui.js';
+import { t } from './i18n.js';
 import { supabase } from './supabase.js';
 import { getSession, getRoleCodes, translateError } from './auth.js';
 
@@ -42,7 +43,7 @@ export async function render(container) {
 
   const session = await getSession();
   if (!session) {
-    container.innerHTML = '<div class="alert alert-warn">Connectez-vous pour signaler un problème.</div><a class="btn btn-primary" href="#/connexion">Se connecter</a>';
+    container.innerHTML = `<div class="alert alert-warn">${escapeHtml(t('sup.guest'))}</div><a class="btn btn-primary" href="#/connexion">${escapeHtml(t('common.login'))}</a>`;
     return;
   }
   const { data, error } = await supabase.from('support_tickets')
@@ -51,16 +52,16 @@ export async function render(container) {
 
   container.innerHTML = `
     <a class="back" href="#/compte">← Mon compte</a>
-    <h1>Signaler un problème</h1>
+    <h1>${escapeHtml(t('sup.title'))}</h1>
     <div id="ticket-msg" class="alert" role="status" hidden></div>
     <form id="ticket" class="card admin-form" novalidate>
-      <label>Sujet<input name="subject" maxlength="120" required></label>
-      <label>Message<textarea name="message" rows="5" maxlength="2000" required></textarea></label>
-      <p class="hint">Indiquez si besoin le code produit ou le numéro de commande concerné.</p>
-      <button class="btn btn-primary btn-block" type="submit">Envoyer</button>
+      <label>${escapeHtml(t('sup.subject'))}<input name="subject" maxlength="120" required></label>
+      <label>${escapeHtml(t('sup.message'))}<textarea name="message" rows="5" maxlength="2000" required></textarea></label>
+      <p class="hint">${escapeHtml(t('sup.hint'))}</p>
+      <button class="btn btn-primary btn-block" type="submit">${escapeHtml(t('sup.send'))}</button>
     </form>
-    <h2 class="section-title">Mes demandes</h2>
-    <ul class="admin-list">${data.map((t) => ticketHtml(t, false)).join('') || '<li class="empty">Aucune demande pour le moment.</li>'}</ul>`;
+    <h2 class="section-title">${escapeHtml(t('sup.mine'))}</h2>
+    <ul class="admin-list">${data.map((t) => ticketHtml(t, false)).join('') || `<li class="empty">${escapeHtml(t('sup.none'))}</li>`}</ul>`;
 
   const msg = container.querySelector('#ticket-msg');
   const say = (text, type) => { msg.className = `alert alert-${type}`; msg.textContent = text; msg.hidden = false; };
@@ -71,10 +72,10 @@ export async function render(container) {
     const fd = new FormData(e.currentTarget);
     const subject = String(fd.get('subject')).trim();
     const message = String(fd.get('message')).trim();
-    if (subject.length < 3 || message.length < 5) { say('Sujet (3 caractères minimum) et message (5 caractères minimum).', 'error'); return; }
+    if (subject.length < 3 || message.length < 5) { say(t('sup.minlen'), 'error'); return; }
     const { error: insError } = await supabase.from('support_tickets').insert({ user_id: session.user.id, subject, message });
     if (insError) { say(translateError(insError), 'error'); return; }
-    pending = { text: 'Demande envoyée. Nous vous répondrons ici.', type: 'success' };
+    pending = { text: t('sup.sent'), type: 'success' };
     render(container);
   });
 }

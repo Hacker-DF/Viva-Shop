@@ -3,6 +3,7 @@
  * Client : formulaire et suivi (render). Équipe : étude, devis, refus (renderStaff).
  */
 import { escapeHtml, icon } from './ui.js';
+import { t } from './i18n.js';
 import { supabase } from './supabase.js';
 import { getSession, getRoleCodes, translateError } from './auth.js';
 import { formatFcfa } from './products.js';
@@ -17,7 +18,7 @@ const STAFF_ROLES = ['administrateur_principal', 'responsable_commandes'];
 export async function render(container) {
   const session = await getSession();
   if (!session) {
-    container.innerHTML = '<div class="alert alert-warn">Connectez-vous pour faire une demande.</div><a class="btn btn-primary" href="#/connexion">Se connecter</a>';
+    container.innerHTML = `<div class="alert alert-warn">${escapeHtml(t('sp.guest'))}</div><a class="btn btn-primary" href="#/connexion">${escapeHtml(t('common.login'))}</a>`;
     return;
   }
   const { data, error } = await supabase.from('special_orders')
@@ -27,12 +28,12 @@ export async function render(container) {
 
   container.innerHTML = `
     <a class="back" href="#/boutique">← Boutique</a>
-    <h1>Demande spéciale</h1>
-    <p class="hint">Vous ne trouvez pas un produit ? Décrivez-le : notre équipe l’étudie et vous envoie un devis.</p>
+    <h1>${escapeHtml(t('sp.title'))}</h1>
+    <p class="hint">${escapeHtml(t('sp.hint'))}</p>
     <div id="sp-msg" class="alert" role="status" hidden></div>
     <form id="sp-form" class="card admin-form" novalidate>
-      <label>Nom du produit recherché<input name="product_name" required maxlength="150"></label>
-      <label>Photo du produit (facultatif, 5 Mo maximum)<input name="photo" type="file" accept="image/jpeg,image/png,image/webp"></label>
+      <label>${escapeHtml(t('sp.product'))}<input name="product_name" required maxlength="150"></label>
+      <label>${escapeHtml(t('sp.photo'))}<input name="photo" type="file" accept="image/jpeg,image/png,image/webp"></label>
       <label>Lien du fournisseur (facultatif)<input name="supplier_link" type="url" maxlength="300" placeholder="https://…"></label>
       <label>Description<textarea name="description" rows="3" maxlength="1000"></textarea></label>
       <div class="two-cols">
@@ -40,9 +41,9 @@ export async function render(container) {
         <label>Budget indicatif (FCFA, facultatif)<input name="budget" type="number" min="0" step="1"></label>
       </div>
       <label>Informations complémentaires (facultatif)<textarea name="notes" rows="2" maxlength="500"></textarea></label>
-      <button class="btn btn-primary btn-block" type="submit">Envoyer ma demande</button>
+      <button class="btn btn-primary btn-block" type="submit">${escapeHtml(t('sp.send'))}</button>
     </form>
-    <h2 class="section-title">Mes demandes</h2>
+    <h2 class="section-title">${escapeHtml(t('sp.mine'))}</h2>
     <ul class="admin-list">
       ${data.map((r) => `
         <li class="admin-row">
@@ -53,11 +54,12 @@ export async function render(container) {
             ${r.quote_note ? `<span class="product-code">${escapeHtml(r.quote_note)}</span>` : ''}
           </div>
           <span class="status-badge" style="--c: var(--electric)">${escapeHtml(STATUS[r.status] || r.status)}</span>
+          ${r.status === 'acceptee' ? '<p class="product-code">Devis accepté. Notre équipe vous contacte pour le paiement et la commande.</p>' : ''}
           ${r.status === 'devis_envoye' ? `<div class="admin-actions wrap">
             <button class="btn btn-primary btn-small" type="button" data-id="${r.id}" data-decision="acceptee">Accepter le devis</button>
             <button class="btn btn-ghost btn-small" type="button" data-id="${r.id}" data-decision="refusee">Refuser</button>
           </div>` : ''}
-        </li>`).join('') || '<li class="empty">Aucune demande pour le moment.</li>'}
+        </li>`).join('') || `<li class="empty">${escapeHtml(t('sp.none'))}</li>`}
     </ul>`;
 
   const msg = container.querySelector('#sp-msg');
@@ -120,7 +122,7 @@ export async function render(container) {
     if (insError) { say(translateError(insError), 'error'); return; }
     render(container);
     container.querySelector('#sp-msg').className = 'alert alert-success';
-    container.querySelector('#sp-msg').textContent = 'Demande envoyée. Vous serez prévenu dès qu’un devis est disponible.';
+    container.querySelector('#sp-msg').textContent = t('sp.sent');
     container.querySelector('#sp-msg').hidden = false;
   });
 }
@@ -160,7 +162,7 @@ export async function renderStaff(container) {
             ${r.status === 'recue' || r.status === 'etude' ? `<button class="btn btn-primary btn-small" type="button" data-id="${r.id}" data-action="quote">Envoyer un devis</button>` : ''}
             ${r.status !== 'refusee' && r.status !== 'acceptee' ? `<button class="btn btn-ghost btn-small" type="button" data-id="${r.id}" data-action="refuse">Refuser</button>` : ''}
           </div>
-        </li>`).join('') || '<li class="empty">Aucune demande pour le moment.</li>'}
+        </li>`).join('') || `<li class="empty">${escapeHtml(t('sp.none'))}</li>`}
     </ul>`;
 
   const msg = container.querySelector('#sp-staff-msg');

@@ -11,13 +11,13 @@ const loginFields = () => [
 ];
 
 const registerFields = () => [
-  { name: 'username', label: t('auth.username'), type: 'text', autocomplete: 'username', hint: t('auth.username.hint') },
-  { name: 'first_name', label: t('auth.firstname'), type: 'text', autocomplete: 'given-name' },
-  { name: 'last_name', label: t('auth.lastname'), type: 'text', autocomplete: 'family-name' },
-  { name: 'phone', label: t('auth.phone'), type: 'tel', autocomplete: 'tel', hint: 'Exemple : +228 90 00 00 00' },
-  { name: 'city', label: t('auth.city'), type: 'text', autocomplete: 'address-level2', optional: true },
-  { name: 'email', label: t('auth.email'), type: 'email', autocomplete: 'email', hint: t('auth.email.hint') },
-  { name: 'password', label: t('auth.password'), type: 'password', autocomplete: 'new-password', hint: t('auth.password.hint') },
+  { name: 'username', placeholder: 'Exemple : kofi_t', label: t('auth.username'), type: 'text', autocomplete: 'username', hint: t('auth.username.hint') },
+  { name: 'first_name', placeholder: 'Exemple : Jean', label: t('auth.firstname'), type: 'text', autocomplete: 'given-name' },
+  { name: 'last_name', placeholder: 'Exemple : KOFFI', label: t('auth.lastname'), type: 'text', autocomplete: 'family-name' },
+  { name: 'phone', placeholder: 'Exemple : +228 90 00 00 00', label: t('auth.phone'), type: 'tel', autocomplete: 'tel', hint: 'Exemple : +228 90 00 00 00' },
+  { name: 'city', placeholder: 'Exemple : Lomé', label: t('auth.city'), type: 'text', autocomplete: 'address-level2', optional: true },
+  { name: 'email', placeholder: 'Exemple : nom@mail.com', label: t('auth.email'), type: 'email', autocomplete: 'email', hint: t('auth.email.hint') },
+  { name: 'password', placeholder: '••••••••', label: t('auth.password'), type: 'password', autocomplete: 'new-password', hint: t('auth.password.hint') },
 ];
 
 /** Champ de formulaire accessible (libellé, aide, message d'erreur). Exporté pour le profil. */
@@ -26,7 +26,7 @@ export function fieldHtml(f) {
     <div class="field">
       <label for="f-${f.name}">${escapeHtml(f.label)}</label>
       <input id="f-${f.name}" name="${f.name}" type="${f.type}" autocomplete="${f.autocomplete}"
-             value="${escapeHtml(f.value ?? '')}" ${f.optional ? '' : 'required'}>
+             value="${escapeHtml(f.value ?? '')}" placeholder="${escapeHtml(f.placeholder ?? '')}" ${f.optional ? '' : 'required'}>
       ${f.hint ? `<small class="hint">${escapeHtml(f.hint)}</small>` : ''}
       <small class="field-error" data-error="${f.name}"></small>
     </div>`;

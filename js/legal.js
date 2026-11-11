@@ -55,7 +55,6 @@ const DOCS = {
   privacy: {
     title: 'Politique de confidentialité',
     html: () => `
-      ${draftNotice()}
       ${h2('Données collectées')}
       ${p('Nom, prénom, nom d’utilisateur, téléphone, email, ville (facultative), photo de profil (facultative), adresses de livraison, préférences de notification, favoris, réservations, déclarations de paiement, captures d’écran de paiement, demandes spéciales et réclamations. Les photos et captures ne sont fournies que si vous les envoyez volontairement.')}
       ${h2('Pourquoi ces données')}
@@ -77,7 +76,6 @@ const DOCS = {
   terms: {
     title: 'Conditions générales',
     html: () => `
-      ${draftNotice()}
       ${h2('Objet')}
       ${p('Viva Shop est un intermédiaire entre des clients au Togo et des fournisseurs en Chine. Les produits sont choisis et mis à jour par l’équipe Viva Shop.')}
       ${h2('Réservation et paiement')}

@@ -98,6 +98,11 @@ export async function render(container) {
         .update({ is_archived: !product.is_archived }).eq('id', product.id);
       if (error) say(translateError(error), 'error');
       else refresh(product.is_archived ? 'Produit réactivé.' : 'Produit archivé.');
+    } else if (btn.dataset.action === 'delete') {
+      if (!window.confirm('Supprimer définitivement ce produit ? Cette action est impossible s’il a déjà des réservations ou des paiements.')) return;
+      const { error } = await supabase.rpc('delete_product', { p_id: product.id });
+      if (error) say(translateError(error), 'error');
+      else refresh('Produit supprimé.');
     }
   });
 }
@@ -128,6 +133,7 @@ function rowHtml(p, categoryName) {
         <button class="btn btn-ghost btn-small" type="button" data-action="archive" data-id="${p.id}">
           ${p.is_archived ? 'Réactiver' : 'Archiver'}
         </button>
+        <button class="btn btn-ghost btn-small" type="button" data-action="delete" data-id="${p.id}">Supprimer</button>
       </div>
     </li>`;
 }

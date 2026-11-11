@@ -66,7 +66,7 @@ export async function render(container) {
         <select name="method" required><option value="">${escapeHtml(t('decl.choose'))}</option>${methodOptions}</select>
       </label>
       <div id="instructions" class="alert alert-info" hidden></div>
-      <label>${escapeHtml(t('decl.txn'))}<input name="txn" maxlength="60"></label>
+      <label>${escapeHtml(t('decl.txn'))}<input name="txn" maxlength="60" placeholder="Exemple : 040928984627"></label>
       <p class="hint">${escapeHtml(t('decl.ref.hint'))}</p>
       <label>${escapeHtml(t('decl.proof'))}
         <input name="proof" type="file" accept="image/jpeg,image/png,image/webp">
