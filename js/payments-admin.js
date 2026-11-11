@@ -39,7 +39,7 @@ export async function render(container) {
   }
 
   const { data, error } = await supabase.from('payment_declarations')
-    .select('id, order_number, amount, payer_name, payer_phone, payment_method, ref_code, txn_id, status, verification_note, products(code, name), profiles(first_name, last_name, username)')
+    .select('id, order_number, amount, payer_name, payer_phone, payment_method, ref_code, txn_id, status, verification_note, proof_path, products(code, name), profiles(first_name, last_name, username)')
     .order('created_at', { ascending: false })
     .limit(50);
   if (error) throw error;
@@ -59,6 +59,14 @@ export async function render(container) {
   if (note) say(note.text, note.type);
 
   container.querySelector('#pay-list').addEventListener('click', async (e) => {
+    const proofBtn = e.target.closest('button[data-proof]');
+    if (proofBtn) {
+      const { data: signed, error: signError } = await supabase.storage.from('justificatifs')
+        .createSignedUrl(proofBtn.dataset.proof, 300);
+      if (signError) { say(translateError(signError), 'error'); return; }
+      window.open(signed.signedUrl, '_blank', 'noopener');
+      return;
+    }
     const btn = e.target.closest('button[data-status]');
     if (!btn) return;
 
@@ -96,6 +104,6 @@ function card(d) {
         <span class="status-badge" style="--c: ${st.color}">${escapeHtml(st.label)}</span>
         ${d.verification_note ? `<span class="product-code">Note : ${escapeHtml(d.verification_note)}</span>` : ''}
       </div>
-      <div class="admin-actions wrap">${actions}</div>
+      <div class="admin-actions wrap">${d.proof_path ? `<button class="btn btn-ghost btn-small" type="button" data-proof="${escapeHtml(d.proof_path)}">Voir la capture</button>` : '<span class="product-code">Pas de capture</span>'}${actions}</div>
     </li>`;
 }

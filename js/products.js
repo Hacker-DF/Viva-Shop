@@ -128,3 +128,19 @@ export async function listMyReservations() {
   if (error) throw error;
   return data;
 }
+
+/** Photos supplémentaires, par produit : { [productId]: [url, ...] }. */
+export async function listProductImages(ids) {
+  if (!ids.length) return {};
+  const { data, error } = await client()
+    .from('product_images').select('product_id, url, position').in('product_id', ids).order('position');
+  if (error) throw error;
+  const map = {};
+  data.forEach((r) => { (map[r.product_id] ||= []).push(r.url); });
+  return map;
+}
+
+/** Toutes les photos d'un produit : la principale d'abord, sans doublon. */
+export function allImages(p, extra = []) {
+  return [...new Set([p.main_image_url, ...extra].filter(Boolean))];
+}

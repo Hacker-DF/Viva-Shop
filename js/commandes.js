@@ -8,6 +8,7 @@ import { getSession, getProfile, translateError } from './auth.js';
 import { downloadProForma } from './pdf.js';
 import { myShipmentsHtml } from './logistics-admin.js';
 import { APP_CONFIG } from './config.js';
+import { t } from './i18n.js';
 
 const waLink = (phone, text) => `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`;
 
@@ -27,8 +28,8 @@ export async function render(container) {
     container.innerHTML = `
       <section class="card placeholder">
         <div class="placeholder-icon">${icon('package')}</div>
-        <h1>Mes commandes</h1>
-        <p>Connectez-vous pour consulter vos paiements et vos réservations.</p>
+        <h1>${escapeHtml(t('orders.title'))}</h1>
+        <p>${escapeHtml(t('orders.guest'))}</p>
         <a class="btn btn-primary" href="#/connexion">Se connecter</a>
       </section>`;
     return;
@@ -41,8 +42,8 @@ export async function render(container) {
   const shipmentsHtml = await myShipmentsHtml();
 
   container.innerHTML = `
-    <h1>Mes paiements</h1>
-    <p class="hint">Une déclaration n’est confirmée qu’après vérification par notre équipe.</p>
+    <h1>${escapeHtml(t('pay.title'))}</h1>
+    <p class="hint">${escapeHtml(t('pay.note'))}</p>
     <div id="pay-msg" class="alert" role="status" hidden></div>
     ${payments.length ? `
       <ul class="admin-list" id="payments">
@@ -54,23 +55,23 @@ export async function render(container) {
               <strong>${escapeHtml(d.products?.name || 'Produit')}</strong>
               <span class="product-code">${escapeHtml(d.order_number)} · ${escapeHtml(d.products?.code || '')} · ${escapeHtml(formatFcfa(d.amount))} · ${escapeHtml(METHODS[d.payment_method]?.label || '')}</span>
               <span class="status-badge" style="--c: ${st.color}">${escapeHtml(st.label)}</span>
-              ${d.whatsapp_sent_at ? '<span class="product-code">Document transmis à un agent</span>' : ''}
+              ${d.whatsapp_sent_at ? `<span class="product-code">${escapeHtml(t('pay.sent.badge'))}</span>` : ''}
             </div>
             <div class="admin-actions wrap">
-              <button class="btn btn-ghost btn-small" type="button" data-action="proforma" data-id="${d.id}">Pro forma PDF</button>
+              <button class="btn btn-ghost btn-small" type="button" data-action="proforma" data-id="${d.id}">${escapeHtml(t('pay.proforma'))}</button>
               ${APP_CONFIG.whatsapp.assistants.map((a) => `
                 <a class="btn btn-primary btn-small" href="${waLink(a.phone, whatsappText(d))}" target="_blank" rel="noopener">${escapeHtml(a.name)} (WhatsApp)</a>`).join('')}
-              ${d.whatsapp_sent_at ? '' : `<button class="btn btn-ghost btn-small" type="button" data-action="sent" data-id="${d.id}">J’ai envoyé mon document</button>`}
+              ${d.whatsapp_sent_at ? '' : `<button class="btn btn-ghost btn-small" type="button" data-action="sent" data-id="${d.id}">${escapeHtml(t('pay.sent'))}</button>`}
             </div>
           </li>`;
         }).join('')}
       </ul>
       <p class="hint">Pour envoyer le PDF : téléchargez le pro forma, ouvrez WhatsApp avec le bouton de l’assistant, puis joignez le PDF manuellement. WhatsApp ne peut pas joindre le fichier automatiquement.</p>`
-      : '<p class="empty">Aucun paiement déclaré pour le moment.</p>'}
+      : `<p class="empty">${escapeHtml(t('pay.none'))}</p>`}
 
     ${shipmentsHtml}
-    <h2 class="section-title">Mes réservations</h2>
-    <p class="hint">Une réservation n’est pas un paiement.</p>
+    <h2 class="section-title">${escapeHtml(t('res.title'))}</h2>
+    <p class="hint">${escapeHtml(t('res.note'))}</p>
     ${reservations.length ? `
       <ul class="admin-list">
         ${reservations.map((r) => `
@@ -81,7 +82,7 @@ export async function render(container) {
             </div>
             <span class="status-badge" style="--c: var(--electric)">${r.status === 'annulee' ? 'Annulée' : 'Enregistrée'}</span>
           </li>`).join('')}
-      </ul>` : '<p class="empty">Vous n’avez encore aucune réservation.</p>'}`;
+      </ul>` : `<p class="empty">${escapeHtml(t('res.none'))}</p>`}`;
 
   const msg = container.querySelector('#pay-msg');
   const say = (text, type) => { msg.className = `alert alert-${type}`; msg.textContent = text; msg.hidden = false; };

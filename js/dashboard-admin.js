@@ -8,6 +8,7 @@ import { supabase } from './supabase.js';
 import { getSession, getRoleCodes, translateError } from './auth.js';
 import { PAYMENT_STATUS } from './payments.js';
 import { formatFcfa } from './products.js';
+import { SHIP_STATUS } from './logistics-admin.js';
 
 /** Nombre de lignes d'une table, avec un filtre optionnel. */
 async function countRows(table, filter = (q) => q) {
@@ -45,18 +46,44 @@ export async function render(container) {
     countRows('shipments', (q) => q.neq('status', 'livre')),
     countRows('shipments', (q) => q.eq('status', 'livre')),
     countRows('support_tickets', (q) => q.neq('status', 'resolue')),
-    supabase.from('payment_declarations').select('amount').eq('status', 'paiement_confirme'),
+    supabase.from('payment_declarations').select('amount, verified_at').eq('status', 'paiement_confirme'),
     supabase.from('payment_declarations').select('status'),
     supabase.from('profiles').select('id, username, first_name, last_name, phone, city, created_at, is_suspended')
       .order('created_at', { ascending: false }).limit(200),
     supabase.from('audit_logs').select('action, created_at').order('created_at', { ascending: false }).limit(15),
   ]);
-  for (const r of [amounts, statuses, profiles, audit]) if (r.error) throw r.error;
+  const shipStatuses = await supabase.from('shipments').select('status');
+  for (const r of [amounts, statuses, profiles, audit, shipStatuses]) if (r.error) throw r.error;
 
   const revenue = amounts.data.reduce((sum, r) => sum + r.amount, 0);
   const byStatus = {};
   statuses.data.forEach((r) => { byStatus[r.status] = (byStatus[r.status] || 0) + 1; });
   const maxCount = Math.max(1, ...Object.values(byStatus));
+
+  // Données des graphiques
+  const statusKeys = Object.keys(PAYMENT_STATUS);
+  const statusLabels = statusKeys.map((k) => PAYMENT_STATUS[k].label);
+  const statusCounts = statusKeys.map((k) => byStatus[k] || 0);
+  const statusColors = statusKeys.map((k) => COLOR[PAYMENT_STATUS[k].color] || '#1E6FD9');
+
+  const revenueByDay = {};
+  amounts.data.forEach((r) => { if (r.verified_at) { const k = r.verified_at.slice(0, 10); revenueByDay[k] = (revenueByDay[k] || 0) + r.amount; } });
+  const days = [];
+  const revenueSeries = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    days.push(d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }));
+    revenueSeries.push(revenueByDay[d.toISOString().slice(0, 10)] || 0);
+  }
+
+  const shipByStatus = {};
+  shipStatuses.data.forEach((r) => { shipByStatus[r.status] = (shipByStatus[r.status] || 0) + 1; });
+  const shipKeys = Object.keys(SHIP_STATUS);
+  const shipLabels = shipKeys.map((k) => SHIP_STATUS[k].label);
+  const shipCounts = shipKeys.map((k) => shipByStatus[k] || 0);
+  const shipColors = shipKeys.map((k) => COLOR[SHIP_STATUS[k].color] || '#1E6FD9');
+  const chartData = { statusLabels, statusCounts, statusColors, days, revenue: revenueSeries, shipLabels, shipCounts, shipColors };
 
   container.innerHTML = `
     <div class="admin-toolbar"><h1>Tableau de bord</h1></div>
@@ -75,16 +102,17 @@ export async function render(container) {
 
     <section class="card">
       <h2>Déclarations par statut</h2>
-      <div class="bars">
-        ${Object.entries(PAYMENT_STATUS).map(([key, st]) => {
-          const n = byStatus[key] || 0;
-          return `<div class="bar-row">
-            <span>${escapeHtml(st.label)}</span>
-            <div class="bar-track"><div class="bar" style="width: ${Math.round((n / maxCount) * 100)}%; background: ${st.color}"></div></div>
-            <strong>${n}</strong>
-          </div>`;
-        }).join('')}
-      </div>
+      <div class="chart-box"><canvas id="chart-status" aria-label="Déclarations par statut"></canvas></div>
+    </section>
+
+    <section class="card">
+      <h2>Chiffre d’affaires (30 derniers jours)</h2>
+      <div class="chart-box"><canvas id="chart-revenue" aria-label="Chiffre d’affaires par jour"></canvas></div>
+    </section>
+
+    <section class="card">
+      <h2>Colis par étape</h2>
+      <div class="chart-box"><canvas id="chart-shipments" aria-label="Colis par étape"></canvas></div>
     </section>
 
     <section class="card">
@@ -104,6 +132,7 @@ export async function render(container) {
       </ul>
     </section>`;
 
+  drawCharts(chartData);
   const search = container.querySelector('#client-search');
   search.addEventListener('input', () => {
     const term = search.value.trim().toLowerCase();
@@ -194,5 +223,51 @@ async function renderClient(container, id) {
       return;
     }
     renderClient(container, id);
+  });
+}
+
+
+/** Couleurs des variables CSS, traduites en couleurs lisibles par les graphiques. */
+const COLOR = {
+  'var(--status-red)': '#D62828', 'var(--status-green)': '#2A9D55', 'var(--status-grey)': '#6B7280',
+  'var(--status-orange)': '#F77F00', 'var(--electric)': '#1E6FD9', 'var(--grey-600)': '#5B6573',
+};
+
+let chartLib = null;
+function loadChartJs() {
+  if (window.Chart) return Promise.resolve(window.Chart);
+  chartLib ||= new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js';
+    script.onload = () => resolve(window.Chart);
+    script.onerror = () => reject(new Error('Graphiques indisponibles (connexion requise).'));
+    document.head.appendChild(script);
+  });
+  return chartLib;
+}
+
+/** Dessine les trois graphiques du tableau de bord. */
+async function drawCharts(d) {
+  let Chart;
+  try {
+    Chart = await loadChartJs();
+  } catch (err) {
+    document.querySelectorAll('.chart-box').forEach((box) => { box.innerHTML = `<p class="hint">${escapeHtml(err.message)}</p>`; });
+    return;
+  }
+  new Chart(document.getElementById('chart-status'), {
+    type: 'bar',
+    data: { labels: d.statusLabels, datasets: [{ data: d.statusCounts, backgroundColor: d.statusColors }] },
+    options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
+  });
+  new Chart(document.getElementById('chart-revenue'), {
+    type: 'line',
+    data: { labels: d.days, datasets: [{ label: 'FCFA', data: d.revenue, borderColor: '#1E6FD9', backgroundColor: 'rgba(30,111,217,.15)', fill: true, tension: 0.3 }] },
+    options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } },
+  });
+  new Chart(document.getElementById('chart-shipments'), {
+    type: 'doughnut',
+    data: { labels: d.shipLabels, datasets: [{ data: d.shipCounts, backgroundColor: d.shipColors }] },
+    options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } },
   });
 }

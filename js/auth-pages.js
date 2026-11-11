@@ -108,7 +108,7 @@ export async function render(container, { route }) {
     title: t('auth.login'),
     fields: loginFields(),
     submitLabel: t('auth.submit.login'),
-    footer: `${escapeHtml(t('auth.noaccount'))} <a href="#/inscription">${escapeHtml(t('auth.create'))}</a>`,
+    footer: `${escapeHtml(t('auth.noaccount'))} <a href="#/inscription">${escapeHtml(t('auth.create'))}</a><br><a href="#/mot-de-passe">Mot de passe oublié ?</a>`,
     validate: (d) => {
       const errors = {};
       if (!d.email) errors.email = t('auth.email.required');

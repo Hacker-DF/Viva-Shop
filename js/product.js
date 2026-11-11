@@ -4,7 +4,7 @@
 import { escapeHtml, icon } from './ui.js';
 import {
   getProductByCode, favoriteIdsAmong, setFavorite, listTiers, unitPriceFor,
-  createReservation, formatFcfa,
+  createReservation, formatFcfa, listProductImages, allImages,
 } from './products.js';
 import { getSession, translateError } from './auth.js';
 import { t } from './i18n.js';
@@ -26,8 +26,10 @@ export async function render(container) {
   const [tiers, favIds] = await Promise.all([listTiers(p.id), favoriteIdsAmong([p.id])]);
   let isFav = favIds.includes(p.id);
   const basePrice = p.promo_price ?? p.price_ht;
-  const image = p.main_image_url
-    ? `<img src="${escapeHtml(p.main_image_url)}" alt="${escapeHtml(p.name)}">`
+  const extra = await listProductImages([p.id]).then((m) => m[p.id] || []).catch(() => []);
+  const list = allImages(p, extra);
+  const image = list.length
+    ? `<div class="gallery">${list.map((u) => `<img src="${escapeHtml(u)}" alt="${escapeHtml(p.name)}">`).join('')}</div>`
     : `<div class="product-placeholder large">${icon('package')}</div>`;
 
   container.innerHTML = `

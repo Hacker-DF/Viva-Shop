@@ -21,7 +21,7 @@ export async function render(container) {
     return;
   }
   const { data, error } = await supabase.from('special_orders')
-    .select('reference, product_name, image_url, quantity, status, quote_amount, quote_note, created_at')
+    .select('id, reference, product_name, image_url, quantity, status, quote_amount, quote_note, created_at')
     .order('created_at', { ascending: false });
   if (error) throw error;
 
@@ -53,11 +53,36 @@ export async function render(container) {
             ${r.quote_note ? `<span class="product-code">${escapeHtml(r.quote_note)}</span>` : ''}
           </div>
           <span class="status-badge" style="--c: var(--electric)">${escapeHtml(STATUS[r.status] || r.status)}</span>
+          ${r.status === 'devis_envoye' ? `<div class="admin-actions wrap">
+            <button class="btn btn-primary btn-small" type="button" data-id="${r.id}" data-decision="acceptee">Accepter le devis</button>
+            <button class="btn btn-ghost btn-small" type="button" data-id="${r.id}" data-decision="refusee">Refuser</button>
+          </div>` : ''}
         </li>`).join('') || '<li class="empty">Aucune demande pour le moment.</li>'}
     </ul>`;
 
   const msg = container.querySelector('#sp-msg');
   const say = (text, type) => { msg.className = `alert alert-${type}`; msg.textContent = text; msg.hidden = false; };
+
+  container.querySelector('ul.admin-list').addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-decision]');
+    if (!btn) return;
+    const { data: changed, error: decError } = await supabase.from('special_orders')
+      .update({ status: btn.dataset.decision }).eq('id', btn.dataset.id).select('id');
+    const m = container.querySelector('#sp-msg');
+    if (decError || !changed?.length) {
+      m.className = 'alert alert-error';
+      m.textContent = decError ? translateError(decError) : 'Action refusée.';
+      m.hidden = false;
+      return;
+    }
+    await render(container);
+    const done = container.querySelector('#sp-msg');
+    done.className = 'alert alert-success';
+    done.textContent = btn.dataset.decision === 'acceptee'
+      ? 'Devis accepté. Notre équipe vous contacte pour la suite.'
+      : 'Devis refusé.';
+    done.hidden = false;
+  });
 
   container.querySelector('#sp-form').addEventListener('submit', async (e) => {
     e.preventDefault();

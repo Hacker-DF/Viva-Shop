@@ -169,7 +169,10 @@ async function openForm(container, product, categories, say, onSaved) {
   const form = wrap.querySelector('form');
   const err = wrap.querySelector('#form-error');
   wrap.querySelector('[data-cancel]').addEventListener('click', () => { wrap.hidden = true; wrap.innerHTML = ''; });
-  if (product) renderColorManager(wrap, product.id, say);
+  if (product) {
+    renderColorManager(wrap, product.id, say);
+    renderImageManager(wrap, product.id, say);
+  }
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -222,10 +225,10 @@ async function openForm(container, product, categories, say, onSaved) {
 }
 
 
-/** Couleurs d'un produit (nom et photo), affichées sous le formulaire de modification. */
+/** Couleurs disponibles d'un produit (nom seulement), sous le formulaire de modification. */
 async function renderColorManager(wrap, productId, say) {
   const { data: colors, error } = await supabase.from('product_colors')
-    .select('id, name, photo_url').eq('product_id', productId).order('name');
+    .select('id, name').eq('product_id', productId).order('name');
   if (error) { say(translateError(error), 'error'); return; }
 
   const section = document.createElement('section');
@@ -234,20 +237,14 @@ async function renderColorManager(wrap, productId, say) {
   const reload = () => { section.remove(); renderColorManager(wrap, productId, say); };
 
   section.innerHTML = `
-    <h2>Couleurs et photos</h2>
-    <p class="hint">Chaque couleur a sa photo. Elle s’affiche automatiquement lors de l’ajout d’un colis.</p>
+    <h2>Couleurs disponibles</h2>
+    <p class="hint">Ces couleurs sont proposées lors de l’ajout d’un colis.</p>
     <ul class="campaign-items">
-      ${colors.map((c) => `
-        <li>${c.photo_url ? `<img class="color-thumb" src="${escapeHtml(c.photo_url)}" alt="">` : ''}
-          ${escapeHtml(c.name)}
-          <button type="button" class="chip-x" data-del="${c.id}" aria-label="Supprimer la couleur">×</button>
-        </li>`).join('') || '<li class="product-code">Aucune couleur pour ce produit.</li>'}
+      ${colors.map((c) => `<li>${escapeHtml(c.name)} <button type="button" class="chip-x" data-del="${c.id}" aria-label="Supprimer la couleur">×</button></li>`).join('')
+        || '<li class="product-code">Aucune couleur pour ce produit.</li>'}
     </ul>
     <form id="color-add" novalidate>
       <label>Nom de la couleur<input name="name" maxlength="40" required></label>
-      <label>Photo de cette couleur (JPG, PNG ou WebP, 5 Mo maximum)
-        <input name="photo" type="file" accept="image/jpeg,image/png,image/webp">
-      </label>
       <button class="btn btn-ghost btn-block" type="submit">Ajouter la couleur</button>
     </form>`;
 
@@ -262,24 +259,9 @@ async function renderColorManager(wrap, productId, say) {
 
   section.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const fd = new FormData(e.target);
-    const name = String(fd.get('name')).trim();
-    const photo = fd.get('photo');
+    const name = String(new FormData(e.target).get('name')).trim();
     if (!name) { say('Indiquez le nom de la couleur.', 'error'); return; }
-
-    let photoUrl = null;
-    if (photo && photo.size > 0) {
-      if (photo.size > 5 * 1024 * 1024) { say('Photo trop lourde (5 Mo maximum).', 'error'); return; }
-      const ext = (photo.name.split('.').pop() || 'jpg').toLowerCase();
-      const path = `couleurs/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      const { error: upError } = await supabase.storage.from('produits')
-        .upload(path, photo, { contentType: photo.type, upsert: false });
-      if (upError) { say(translateError(upError), 'error'); return; }
-      photoUrl = supabase.storage.from('produits').getPublicUrl(path).data.publicUrl;
-    }
-
-    const { error: insError } = await supabase.from('product_colors')
-      .insert({ product_id: productId, name, photo_url: photoUrl });
+    const { error: insError } = await supabase.from('product_colors').insert({ product_id: productId, name });
     if (insError) {
       say(insError.message.includes('duplicate') ? 'Cette couleur existe déjà pour ce produit.' : translateError(insError), 'error');
       return;
@@ -289,5 +271,67 @@ async function renderColorManager(wrap, productId, say) {
   });
 
   wrap.appendChild(section);
-  // Le contenu est déjà prêt : l'affichage ne dépend pas de la liste ci-dessus
+}
+
+/** Photos supplémentaires d'un produit : ajout multiple, suppression, défilement sur la boutique. */
+async function renderImageManager(wrap, productId, say) {
+  const { data: imgs, error } = await supabase.from('product_images')
+    .select('id, url, position').eq('product_id', productId).order('position');
+  if (error) { say(translateError(error), 'error'); return; }
+
+  const section = document.createElement('section');
+  section.className = 'card admin-form';
+  section.id = 'image-manager';
+  const reload = () => { section.remove(); renderImageManager(wrap, productId, say); };
+
+  section.innerHTML = `
+    <h2>Photos du produit</h2>
+    <p class="hint">Sur la boutique, les photos défilent en boucle. Sur la fiche, le client les parcourt en glissant.</p>
+    <div class="thumbs">
+      ${imgs.map((i) => `
+        <div class="thumb">
+          <img src="${escapeHtml(i.url)}" alt="">
+          <button type="button" class="chip-x" data-del="${i.id}" aria-label="Supprimer la photo">×</button>
+        </div>`).join('') || '<p class="product-code">Aucune photo supplémentaire.</p>'}
+    </div>
+    <form id="img-add" novalidate>
+      <label>Ajouter des photos (plusieurs possibles, 5 Mo maximum chacune)
+        <input name="photos" type="file" multiple accept="image/jpeg,image/png,image/webp">
+      </label>
+      <button class="btn btn-ghost btn-block" type="submit">Téléverser les photos</button>
+    </form>`;
+
+  section.addEventListener('click', async (e) => {
+    const del = e.target.closest('button[data-del]');
+    if (!del) return;
+    const { data: removed, error: delError } = await supabase.from('product_images')
+      .delete().eq('id', del.dataset.del).select('id');
+    if (delError) { say(translateError(delError), 'error'); return; }
+    if (!removed?.length) { say('Suppression refusée : vos droits ne permettent pas cette action.', 'error'); return; }
+    say('Photo supprimée.', 'success');
+    reload();
+  });
+
+  section.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const files = [...section.querySelector('input[name="photos"]').files];
+    if (!files.length) { say('Choisissez au moins une photo.', 'error'); return; }
+    let position = imgs.length;
+    for (const file of files) {
+      if (file.size > 5 * 1024 * 1024) { say('Une photo dépasse 5 Mo.', 'error'); return; }
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      const path = `produits/${productId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error: upError } = await supabase.storage.from('produits')
+        .upload(path, file, { contentType: file.type, upsert: false });
+      if (upError) { say(translateError(upError), 'error'); return; }
+      const url = supabase.storage.from('produits').getPublicUrl(path).data.publicUrl;
+      const { error: insError } = await supabase.from('product_images')
+        .insert({ product_id: productId, url, position: position++ });
+      if (insError) { say(translateError(insError), 'error'); return; }
+    }
+    say(`${files.length} photo(s) ajoutée(s).`, 'success');
+    reload();
+  });
+
+  wrap.appendChild(section);
 }

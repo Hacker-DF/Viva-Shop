@@ -3,17 +3,20 @@
  */
 import { escapeHtml, icon } from './ui.js';
 import { t } from './i18n.js';
-import { listCategories, listProducts, STATUS_LABELS, formatFcfa } from './products.js';
+import { listCategories, listProducts, listProductImages, allImages, STATUS_LABELS, formatFcfa } from './products.js';
 
 const PAGE_SIZE = 24;
 
 /** Carte produit réutilisable (boutique et favoris). */
-export function productCardHtml(p) {
+export function productCardHtml(p, extra = []) {
   const status = STATUS_LABELS[p.status] || STATUS_LABELS.en_attente;
   const price = p.promo_price ?? p.price_ht;
-  const image = p.main_image_url
-    ? `<img src="${escapeHtml(p.main_image_url)}" alt="${escapeHtml(p.name)}" loading="lazy">`
-    : `<div class="product-placeholder">${icon('package')}</div>`;
+  const list = allImages(p, extra);
+  const image = list.length > 1
+    ? `<div class="cycle" data-cycle>${list.map((u, i) => `<img src="${escapeHtml(u)}" alt="${escapeHtml(p.name)}" loading="lazy" class="${i === 0 ? 'on' : ''}">`).join('')}</div>`
+    : list.length === 1
+      ? `<img src="${escapeHtml(list[0])}" alt="${escapeHtml(p.name)}" loading="lazy">`
+      : `<div class="product-placeholder">${icon('package')}</div>`;
   return `
     <a class="product-card" href="#/produit/${encodeURIComponent(p.code)}">
       <div class="product-img">${image}</div>
@@ -68,7 +71,8 @@ export async function render(container) {
         limit: PAGE_SIZE,
       });
       if (reset) grid.innerHTML = '';
-      grid.insertAdjacentHTML('beforeend', items.map(productCardHtml).join(''));
+      const imgs = await listProductImages(items.map((p) => p.id)).catch(() => ({}));
+      grid.insertAdjacentHTML('beforeend', items.map((p) => productCardHtml(p, imgs[p.id] || [])).join(''));
       offset += items.length;
       empty.hidden = grid.children.length > 0;
       more.hidden = items.length < PAGE_SIZE;

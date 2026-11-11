@@ -23,7 +23,7 @@ export async function render(container) {
   container.innerHTML = `
     <h1>Mes favoris</h1>
     ${items.length
-      ? `<div class="product-grid">${items.map(productCardHtml).join('')}</div>`
+      ? `<div class="product-grid">${items.map((p) => productCardHtml(p)).join('')}</div>`
       : '<p class="empty">Vous n’avez pas encore de favoris. Ajoutez-en depuis la boutique.</p>'}
     <a class="btn btn-ghost" href="#/boutique">Aller à la boutique</a>`;
 }

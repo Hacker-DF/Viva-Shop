@@ -5,6 +5,8 @@
 import { escapeHtml, icon } from './ui.js';
 import { getProfile, updateProfile, getRoleLabels, getRoleCodes, getSession, signOut, translateError } from './auth.js';
 import { fieldHtml } from './auth-pages.js';
+import { supabase } from './supabase.js';
+import { renderAddresses } from './addresses.js';
 import { t } from './i18n.js';
 
 export async function render(container) {
@@ -31,7 +33,8 @@ export async function render(container) {
   container.innerHTML = `
     <section class="card auth">
       <div class="profile-head">
-        <div class="avatar" aria-hidden="true">${escapeHtml(initials)}</div>
+        ${profile.avatar_url ? `<img class="avatar avatar-img" src="${escapeHtml(profile.avatar_url)}" alt="">` : `<div class="avatar" aria-hidden="true">${escapeHtml(initials)}</div>`}
+        <label class="btn btn-ghost btn-small">Changer la photo<input id="avatar-input" type="file" accept="image/jpeg,image/png,image/webp" hidden></label>
         <div>
           <h1>${escapeHtml(profile.first_name)} ${escapeHtml(profile.last_name)}</h1>
           <small>@${escapeHtml(profile.username)}</small>
@@ -45,6 +48,7 @@ export async function render(container) {
       ${isSupport ? '<a class="btn btn-ghost btn-block" href="#/admin/support">Réclamations</a>' : ''}
       ${codes.some((c) => ['administrateur_principal', 'responsable_commandes'].includes(c)) ? '<a class="btn btn-ghost btn-block" href="#/admin/demandes">Demandes spéciales</a>' : ''}
 
+      <section id="addresses-slot" class="section"></section>
       <section class="personal">
         <h2 class="section-title">${escapeHtml(t('prof.personal'))}</h2>
         <p>Téléphone : <strong id="mask-phone">${escapeHtml(maskPhone(profile.phone))}</strong></p>
@@ -75,6 +79,38 @@ export async function render(container) {
     </section>`;
 
   const form = container.querySelector('#profile-form');
+  container.querySelector('#avatar-input')?.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    const msg = container.querySelector('#profile-msg');
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      msg.className = 'alert alert-error';
+      msg.textContent = 'Photo trop lourde (2 Mo maximum).';
+      msg.hidden = false;
+      return;
+    }
+    const session = await getSession();
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    const path = `${session.user.id}/${Date.now()}.${ext}`;
+    const { error: upError } = await supabase.storage.from('avatars').upload(path, file, { contentType: file.type, upsert: false });
+    if (upError) {
+      msg.className = 'alert alert-error';
+      msg.textContent = translateError(upError);
+      msg.hidden = false;
+      return;
+    }
+    const url = supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl;
+    try {
+      await updateProfile({ avatar_url: url });
+      await render(container);
+    } catch (err) {
+      msg.className = 'alert alert-error';
+      msg.textContent = translateError(err);
+      msg.hidden = false;
+    }
+  });
+
+  renderAddresses(container.querySelector('#addresses-slot'));
   const reveal = container.querySelector('#reveal');
   reveal?.addEventListener('click', () => {
     const shown = reveal.dataset.shown === '1';

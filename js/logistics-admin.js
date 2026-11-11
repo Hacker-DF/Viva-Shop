@@ -63,7 +63,7 @@ export async function render(container) {
 
   const [shipRes, colorRes, productRes, confirmedRes] = await Promise.all([
     supabase.from('shipments')
-      .select('id, tracking_number, status, color_name, color_photo_url, estimated_arrival, payment_declarations(order_number, amount, products(name, code)), profiles(first_name, last_name, username)')
+      .select('id, tracking_number, status, color_name, color_photo_url, estimated_arrival, assigned_to, payment_declarations(order_number, amount, products(name, code)), profiles(first_name, last_name, username)')
       .order('created_at', { ascending: false }).limit(100),
     supabase.from('product_colors').select('id, product_id, name, photo_url').order('name'),
     supabase.from('products').select('id, code, name').eq('is_archived', false).order('name'),
@@ -102,21 +102,29 @@ export async function render(container) {
   if (createForm) {
     const decl = createForm.querySelector('[name="declaration"]');
     const color = createForm.querySelector('[name="color"]');
-    const preview = createForm.querySelector('#color-preview');
 
     const fillColors = () => {
       const productId = decl.selectedOptions[0]?.dataset.product;
       const list = colorsByProduct[productId] || [];
       color.innerHTML = '<option value="">Sans couleur (facultatif)</option>'
-        + list.map((c) => `<option value="${c.id}" data-photo="${escapeHtml(c.photo_url || '')}">${escapeHtml(c.name)}</option>`).join('');
-      showPhoto();
-    };
-    const showPhoto = () => {
-      const url = color.selectedOptions[0]?.dataset.photo || '';
-      preview.innerHTML = url ? `<img src="${escapeHtml(url)}" alt="Photo de la couleur choisie">` : '';
+        + list.map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')
+        + '<option value="__new__">+ Ajouter une couleur disponible…</option>';
+      color.dataset.product = productId || '';
     };
     decl.addEventListener('change', fillColors);
-    color.addEventListener('change', showPhoto);
+    color.addEventListener('change', async () => {
+      if (color.value !== '__new__') return;
+      const name = window.prompt('Nom de la couleur disponible :');
+      color.value = '';
+      if (!name || !name.trim()) return;
+      const { error: colorError } = await supabase.from('product_colors')
+        .insert({ product_id: color.dataset.product, name: name.trim() });
+      if (colorError) {
+        say(colorError.message.includes('duplicate') ? 'Cette couleur existe déjà pour ce produit.' : translateError(colorError), 'error');
+        return;
+      }
+      done('Couleur ajoutée. Vous pouvez la choisir.');
+    });
     fillColors();
 
     createForm.addEventListener('submit', async (e) => {
@@ -166,6 +174,15 @@ export async function render(container) {
 
   // Avancement d'un colis
   container.querySelector('#ship-list').addEventListener('click', async (e) => {
+    const assign = e.target.closest('button[data-assign]');
+    if (assign) {
+      const username = window.prompt('Nom d’utilisateur de l’agent (laisser vide pour retirer l’affectation) :', '');
+      if (username === null) return;
+      const { error: asError } = await supabase.rpc('assign_shipment', { p_id: assign.dataset.assign, p_username: username.trim() });
+      if (asError) { say(translateError(asError), 'error'); return; }
+      done('Affectation enregistrée.');
+      return;
+    }
     const del = e.target.closest('button[data-delete]');
     if (del) {
       if (!window.confirm('Supprimer ce colis ? Cette suppression est enregistrée dans le journal.')) return;
@@ -212,7 +229,6 @@ function createFormHtml(confirmed, colorsByProduct) {
         </select>
       </label>
       <label>Couleur (facultatif)<select name="color"></select></label>
-      <div id="color-preview" class="color-preview"></div>
       <button class="btn btn-primary btn-block" type="submit">Ajouter le colis</button>
     </form>`;
 }
@@ -248,7 +264,9 @@ function shipmentHtml(s, codes, canArrival, canDelete) {
       </div>
       <div class="admin-actions wrap">
         ${s.estimated_arrival ? `<span class="product-code">Arrivée prévue : ${escapeHtml(fmtDate(s.estimated_arrival))}</span>` : ''}
+        ${s.assigned_to ? '<span class="product-code">Affecté à un agent</span>' : '<span class="product-code">Non affecté</span>'}
         ${canArrival ? `<button class="btn btn-ghost btn-small" type="button" data-arrival="${s.id}">Date d’arrivée</button>` : ''}
+        ${canArrival ? `<button class="btn btn-ghost btn-small" type="button" data-assign="${s.id}">${s.assigned_to ? 'Changer l’agent' : 'Affecter un agent'}</button>` : ''}
         ${canDelete ? `<button class="btn btn-ghost btn-small" type="button" data-delete="${s.id}">Supprimer le colis</button>` : ''}
         ${next ? `<button class="btn btn-primary btn-small" type="button" data-id="${s.id}" data-next="${next}">${escapeHtml(ACTION_LABEL[next])}</button>` : ''}
       </div>

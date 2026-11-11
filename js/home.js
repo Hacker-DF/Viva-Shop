@@ -9,7 +9,7 @@ import { getProfile } from './auth.js';
 import { supabase } from './supabase.js';
 import { productCardHtml } from './shop.js';
 import { listMyDeclarations, PAYMENT_STATUS } from './payments.js';
-import { formatFcfa } from './products.js';
+import { formatFcfa, listProductImages } from './products.js';
 import { t } from './i18n.js';
 
 const ADVANTAGES = () => [
@@ -108,7 +108,9 @@ async function loadMemberData() {
       .order('created_at', { ascending: false }).limit(6),
     listMyDeclarations().catch(() => []),
   ]);
-  return { open: openRes.data || [], declarations: declarations.slice(0, 3) };
+  const open = openRes.data || [];
+  const images = await listProductImages(open.map((p) => p.id)).catch(() => ({}));
+  return { open, images, declarations: declarations.slice(0, 3) };
 }
 
 function memberPage(profile, data) {
@@ -129,7 +131,7 @@ function memberPage(profile, data) {
     <section class="section" aria-labelledby="open-title">
       <h2 class="section-title" id="open-title">${escapeHtml(t('home.open'))}</h2>
       ${data.open.length
-        ? `<div class="product-grid">${data.open.map(productCardHtml).join('')}</div>`
+        ? `<div class="product-grid">${data.open.map((p) => productCardHtml(p, data.images[p.id] || [])).join('')}</div>`
         : `<p class="empty">${escapeHtml(t('home.open.empty'))}</p>`}
     </section>
 
@@ -176,7 +178,7 @@ export async function render(container) {
     return;
   }
 
-  let data = { open: [], declarations: [] };
+  let data = { open: [], images: {}, declarations: [] };
   try { data = await loadMemberData(); } catch { /* le tableau de bord reste affiché sans ces données */ }
   container.innerHTML = newsHtml + memberPage(profile, data);
 }

@@ -45,6 +45,7 @@ export async function createDeclaration(d) {
     ref_code: d.ref || null,
     txn_id: d.txn || null,
     notes: d.notes || null,
+    proof_path: d.proofPath || null,
   }).select('id, order_number').single();
   if (error) throw error;
   return data;
@@ -53,7 +54,7 @@ export async function createDeclaration(d) {
 /** Déclarations de l'utilisateur connecté, les plus récentes d'abord. */
 export async function listMyDeclarations() {
   const { data, error } = await supabase.from('payment_declarations')
-    .select('id, order_number, quantity, variant, amount, payment_method, ref_code, txn_id, status, whatsapp_sent_at, created_at, products(code, name)')
+    .select('id, order_number, quantity, variant, amount, payment_method, ref_code, txn_id, status, verified_at, verify_token, whatsapp_sent_at, created_at, products(code, name)')
     .order('created_at', { ascending: false });
   if (error) throw error;
   return data;

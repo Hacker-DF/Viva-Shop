@@ -28,17 +28,14 @@ const GUIDE_STEPS = [
   { icon: 'heart', title: 'Ajouter aux favoris', text: 'Depuis la fiche d’un produit, ajoutez-le à vos favoris pour le retrouver dans l’onglet Favoris.' },
   { icon: 'package', title: 'Réserver un produit', text: 'La réservation n’est possible que pour un produit « En attente ». Une réservation n’est pas un paiement.' },
   { icon: 'clock', title: 'Participer à une campagne', text: 'Lorsque la collecte est ouverte, le statut du produit passe à « Collecte ouverte » et la date limite de paiement s’affiche.' },
-  { icon: 'credit-card', title: 'Payer et déclarer', text: 'Bientôt disponible. Vous paierez par Mixx by Yas ou Flooz vers les numéros officiels, puis vous déclarerez votre paiement avec votre référence.' },
-  { icon: 'file-text', title: 'Document pro forma', text: 'Bientôt disponible. Après votre déclaration, vous pourrez télécharger un PDF pro forma. Ce document n’est pas une preuve de paiement.' },
+  { icon: 'credit-card', title: 'Payer et déclarer', text: 'Quand la collecte est ouverte, payez par Mixx by Yas ou Flooz vers le numéro officiel affiché, puis déclarez votre paiement avec votre référence REF ou TXN.' },
+  { icon: 'file-text', title: 'Document pro forma', text: 'Téléchargez le PDF pro forma depuis Mes commandes. Une fois votre paiement validé, il porte le tampon de l’administration et la date de validation.' },
   { icon: 'message', title: 'Contacter un assistant', text: 'Depuis le menu, écrivez à l’un des deux assistants sur WhatsApp. Ils ont les mêmes fonctions.' },
-  { icon: 'truck', title: 'Suivre votre commande', text: 'Dans Commandes, retrouvez l’état de chaque étape, de l’achat en Chine à la livraison à votre domicile.' },
+  { icon: 'truck', title: 'Suivre votre colis', text: 'Dans Commandes, « Mes colis » affiche la couleur, l’étape en cours, la date d’arrivée prévue et l’historique. Retrouvez-le avec votre numéro de commande.' },
+  { icon: 'bell', title: 'Notifications', text: 'La cloche en haut de l’écran vous prévient de chaque changement : paiement, réservation, étape du colis, ouverture d’une collecte.' },
+  { icon: 'package', title: 'Demande spéciale', text: 'Vous ne trouvez pas un produit ? Décrivez-le, ajoutez une photo si vous en avez une. Notre équipe vous envoie un devis.' },
+  { icon: 'message', title: 'Signaler un problème', text: 'Dans Mon compte, « Signaler un problème » envoie votre demande à l’équipe support. La réponse apparaît dans Mes demandes.' },
   { icon: 'user', title: 'Gérer votre profil', text: 'Dans Mon compte, modifiez vos informations de contact. Le nom d’utilisateur ne peut pas être modifié.' },
-];
-
-const ADMIN_ITEMS = [
-  'Produits : ajoutez-les depuis Administration des produits (nom, catégorie, prix, promotion, statut, image en https). Le code est généré automatiquement.',
-  'Campagnes : créez une campagne, ajoutez-y des produits, puis ouvrez la collecte. Les statuts des produits suivent automatiquement.',
-  'Équipe (administrateur principal uniquement) : attribuez ou retirez les rôles. Chaque changement est journalisé.',
 ];
 
 const DOCS = {
@@ -52,9 +49,7 @@ const DOCS = {
             <span class="guide-icon">${icon(s.icon)}</span>
             <div><strong>${i + 1}. ${escapeHtml(s.title)}</strong><p>${escapeHtml(s.text)}</p></div>
           </li>`).join('')}
-      </ol>
-      ${h2('Pour les administrateurs et les agents')}
-      <ul class="guide-list">${ADMIN_ITEMS.map((i) => `<li>${escapeHtml(i)}</li>`).join('')}</ul>`,
+      </ol>`,
   },
 
   privacy: {
@@ -62,7 +57,7 @@ const DOCS = {
     html: () => `
       ${draftNotice()}
       ${h2('Données collectées')}
-      ${p('Nom, prénom, nom d’utilisateur, téléphone, email, ville (facultative), préférences de notification, favoris, réservations. Plus tard : déclarations de paiement et justificatifs, que vous fournissez volontairement.')}
+      ${p('Nom, prénom, nom d’utilisateur, téléphone, email, ville (facultative), photo de profil (facultative), adresses de livraison, préférences de notification, favoris, réservations, déclarations de paiement, captures d’écran de paiement, demandes spéciales et réclamations. Les photos et captures ne sont fournies que si vous les envoyez volontairement.')}
       ${h2('Pourquoi ces données')}
       ${p('Créer et gérer votre compte, traiter vos réservations et commandes, vous contacter par WhatsApp ou email, vérifier vos paiements, prévenir les fraudes.')}
       ${h2('Qui y accède')}
@@ -70,11 +65,13 @@ const DOCS = {
       ${h2('Où elles sont stockées')}
       ${p('Les données sont hébergées chez Supabase, dans la région Europe (Francfort). Les préférences de langue et de thème sont stockées sur votre appareil.')}
       ${h2('Durée de conservation')}
-      ${p('Vos données sont conservées tant que votre compte est actif. [Durée après suppression du compte : à définir.]')}
+      ${p('Vos données sont conservées tant que votre compte est actif. Les données de commande et de paiement sont conservées 5 ans après la dernière opération, pour nos obligations comptables. Les autres données sont supprimées à la fermeture du compte.')}
       ${h2('Vos droits')}
       ${p('Vous pouvez demander l’accès à vos données, leur correction ou leur suppression, en écrivant à l’un des assistants sur WhatsApp.')}
       ${h2('Sécurité')}
-      ${p('Chaque utilisateur ne voit que ses propres données. Les actions sensibles sont journalisées.')}`,
+      ${p('Vos données sont chiffrées pendant leur transmission (connexion HTTPS) et protégées pendant leur conservation sur les serveurs de notre hébergeur.')}
+      ${p('L’accès est limité par rôle : chaque personne ne voit que ce que sa fonction permet, et les actions sensibles sont journalisées.')}
+      ${p('Aucun système n’est totalement à l’abri d’un incident. En cas de risque pour vos données, nous vous en informerons dans les délais prévus par la loi.')}`,
   },
 
   terms: {
@@ -88,13 +85,16 @@ const DOCS = {
       ${h2('Prix')}
       ${p('Les prix sont indiqués hors taxes en FCFA. Les tarifs dégressifs s’appliquent selon la quantité. Des frais peuvent s’ajouter, et ils sont indiqués avant votre engagement.')}
       ${h2('Remboursement')}
-      ${p('[Conditions et délais de remboursement : à définir.]')}
+      ${p('Vous êtes remboursé lorsque la collecte est annulée ou que le produit n’est pas disponible, lorsqu’une commande n’est pas livrée par notre faute, ou lorsqu’un paiement a été effectué par erreur. Le remboursement est versé par le même moyen de paiement (Mixx by Yas ou Flooz) dans un délai de 14 jours après acceptation de la demande par notre équipe. Les frais de transfert restent à votre charge, sauf faute de notre part.')}
+      ${p('Une commande déjà passée auprès du fournisseur en Chine ne peut être annulée, sauf accord écrit de l’équipe.')}
       ${h2('Livraison')}
-      ${p('[Délais indicatifs et conditions de livraison au Togo : à définir.]')}
+      ${p('La livraison est assurée jusqu’à l’adresse indiquée, au Togo, par nos partenaires transporteurs. Les délais sont indicatifs : ils dépendent des fournisseurs et des transporteurs. La date d’arrivée prévue est communiquée sur chaque colis, et vous êtes prévenu de chaque étape par notification.')}
+      ${p('Un colis non retiré dans les 30 jours après son arrivée au Togo est conservé selon les conditions de notre partenaire, puis retourné ou restitué à l’équipe. Le risque du colis est transféré au client à sa remise.')}
       ${h2('Responsabilité')}
       ${p('Viva Shop s’engage à traiter vos commandes avec soin. Les délais donnés sont indicatifs, car ils dépendent des fournisseurs et des transporteurs.')}
       ${h2('Litiges')}
-      ${p('[Droit applicable et juridiction compétente : à définir.]')}`,
+      ${p('Avant toute procédure, les parties cherchent à résoudre le litige à l’amiable : le client écrit d’abord à notre support depuis « Signaler un problème », puis à un assistant si nécessaire.')}
+      ${p('À défaut d’accord, le litige relève du droit togolais et des tribunaux compétents de Lomé.')}`,
   },
 };
 

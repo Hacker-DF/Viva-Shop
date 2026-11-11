@@ -10,6 +10,7 @@ import { t, setLang, getLang, onLangChange, LANGUAGES } from './i18n.js';
 import { initTheme, toggleTheme, currentTheme } from './theme.js';
 import { mountFloatingMenu } from './floating.js';
 import { startBell } from './notifications.js';
+import { startGalleryCycle } from './gallery.js';
 
 const outlet = document.getElementById('app');
 const navEl = document.getElementById('bottom-nav');
@@ -65,7 +66,7 @@ function registerServiceWorker() {
 /** Sélecteur de langue et bouton de thème de l'en-tête. */
 function setupTools() {
   langSelect.innerHTML = LANGUAGES
-    .map((l) => `<option value="${l.code}" ${l.code === getLang() ? 'selected' : ''}>${l.name}</option>`).join('');
+    .map((l) => `<option value="${l.code}" ${l.code === getLang() ? 'selected' : ''}>${l.code.toUpperCase()}</option>`).join('');
   langSelect.addEventListener('change', () => setLang(langSelect.value));
   langSelect.setAttribute('aria-label', t('lang.label'));
 
@@ -101,6 +102,7 @@ function boot() {
   registerServiceWorker();
   mountFloatingMenu();
   startBell();
+  startGalleryCycle();
   setStatus('checking');
   checkBackend();
 }

@@ -40,3 +40,4 @@
 .bar { height: 100%; border-radius: 6px; }
 .search-input { width: 100%; min-height: 44px; padding: 10px 14px; border: 1.5px solid var(--grey-200); border-radius: 12px; background: var(--white); margin-bottom: 10px; }
 .admin-row[hidden] { display: none; }
+.chart-box { position: relative; height: 240px; margin-top: 8px; }

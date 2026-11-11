@@ -77,14 +77,16 @@ const STRINGS = {
 import { EXTRA } from './i18n-extra.js';
 
 for (const lang of Object.keys(EXTRA)) Object.assign(STRINGS[lang], EXTRA[lang]);
+import { PAY } from './i18n-pay.js';
+for (const lang of Object.keys(PAY)) Object.assign(STRINGS[lang], PAY[lang]);
 
-const LANG_NAMES = { fr: 'Français', en: 'English', ewe: 'Eʋegbe' };
+const LANG_NAMES = { fr: 'Français', en: 'English' };
 const STORAGE_KEY = 'cct-lang';
 const listeners = [];
 
 function detectLang() {
   const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved && STRINGS[saved]) return saved;
+  if (saved && LANG_NAMES[saved]) return saved;
   return (navigator.language || 'fr').slice(0, 2) === 'en' ? 'en' : 'fr';
 }
 
