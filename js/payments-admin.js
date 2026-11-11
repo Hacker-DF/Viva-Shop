@@ -76,8 +76,17 @@ export async function render(container) {
       if (!reason || !reason.trim()) return;
     }
 
+    let paymentDate = null;
+    if (btn.dataset.status === 'paiement_confirme') {
+      const typed = window.prompt('Date à laquelle le paiement a été reçu (JJ/MM/AAAA) :', new Date().toLocaleDateString('fr-FR'));
+      if (!typed) return;
+      const m = typed.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+      if (!m) { say('Format attendu : JJ/MM/AAAA.', 'error'); return; }
+      paymentDate = `${m[3]}-${m[2]}-${m[1]}`;
+    }
+
     const { error: rpcError } = await supabase.rpc('set_payment_status', {
-      p_id: btn.dataset.id, p_status: btn.dataset.status, p_note: reason ? reason.trim() : null,
+      p_id: btn.dataset.id, p_status: btn.dataset.status, p_note: reason ? reason.trim() : null, p_payment_date: paymentDate,
     });
     if (rpcError) { say(translateError(rpcError), 'error'); return; }
 

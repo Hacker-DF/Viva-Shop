@@ -4,6 +4,7 @@
  * ⚠️ La politique de confidentialité et les conditions sont des modèles : à faire valider avant publication.
  */
 import { escapeHtml, icon } from './ui.js';
+import { t } from './i18n.js';
 
 /** Illustration SVG d'en-tête : globe, colis et trajectoire Chine → Togo. */
 const HERO = `
@@ -38,13 +39,22 @@ const GUIDE_STEPS = [
   { icon: 'user', title: 'Gérer votre profil', text: 'Dans Mon compte, modifiez vos informations de contact. Le nom d’utilisateur ne peut pas être modifié.' },
 ];
 
+/** Étapes du guide dans la langue active (icône et ordre conservés). */
+function guideSteps() {
+  return GUIDE_STEPS.map((step, i) => ({
+    icon: step.icon,
+    title: t(`guide.s${i}.t`),
+    text: t(`guide.s${i}.x`),
+  }));
+}
+
 const DOCS = {
   guide: {
-    title: 'Guide d’utilisation',
+    get title() { return t('guide.title'); },
     html: () => `
-      ${p('Bienvenue sur Viva Shop. Ce guide explique, étape par étape, comment commander des produits de Chine.')}
+      ${p(t('guide.intro'))}
       <ol class="guide-steps">
-        ${GUIDE_STEPS.map((s, i) => `
+        ${guideSteps().map((s, i) => `
           <li class="guide-step">
             <span class="guide-icon">${icon(s.icon)}</span>
             <div><strong>${i + 1}. ${escapeHtml(s.title)}</strong><p>${escapeHtml(s.text)}</p></div>

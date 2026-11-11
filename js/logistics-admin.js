@@ -6,19 +6,41 @@ import { escapeHtml } from './ui.js';
 import { supabase } from './supabase.js';
 import { getSession, getRoleCodes, translateError } from './auth.js';
 import { formatFcfa } from './products.js';
+import { t } from './i18n.js';
 
 const LOGISTICS_ROLES = ['administrateur_principal', 'agent_chine', 'responsable_logistique', 'agent_livraison'];
 
 const fmtDate = (iso) => new Date(iso + 'T00:00:00').toLocaleDateString('fr-FR');
 
 export const SHIP_STATUS = {
-  transmise_chine: { label: 'Transmise à l’agent en Chine', color: 'var(--status-red)' },
-  achat_effectue: { label: 'Achat effectué', color: 'var(--electric)' },
-  recu_chine: { label: 'Reçu en Chine', color: 'var(--electric)' },
-  expedie: { label: 'Expédié vers le Togo', color: 'var(--status-orange)' },
-  arrive_togo: { label: 'Arrivé au Togo', color: 'var(--status-orange)' },
-  en_livraison: { label: 'En cours de livraison', color: 'var(--status-green)' },
-  livre: { label: 'Livré', color: 'var(--status-grey)' },
+  transmise_chine: {
+    get label() { return t('st.ship.transmise_chine'); },
+    color: 'var(--status-red)',
+  },
+  achat_effectue: {
+    get label() { return t('st.ship.achat_effectue'); },
+    color: 'var(--electric)',
+  },
+  recu_chine: {
+    get label() { return t('st.ship.recu_chine'); },
+    color: 'var(--electric)',
+  },
+  expedie: {
+    get label() { return t('st.ship.expedie'); },
+    color: 'var(--status-orange)',
+  },
+  arrive_togo: {
+    get label() { return t('st.ship.arrive_togo'); },
+    color: 'var(--status-orange)',
+  },
+  en_livraison: {
+    get label() { return t('st.ship.en_livraison'); },
+    color: 'var(--status-green)',
+  },
+  livre: {
+    get label() { return t('st.ship.livre'); },
+    color: 'var(--status-grey)',
+  },
 };
 
 /** Étape suivante permise à chaque rôle. */
@@ -66,7 +88,7 @@ export async function render(container) {
       .select('id, tracking_number, status, color_name, color_photo_url, estimated_arrival, assigned_to, payment_declarations(order_number, amount, products(name, code)), profiles(first_name, last_name, username)')
       .order('created_at', { ascending: false }).limit(100),
     supabase.from('product_colors').select('id, product_id, name, photo_url').order('name'),
-    supabase.from('products').select('id, code, name').eq('is_archived', false).order('name'),
+    supabase.from('products').select('id, code, name, has_colors').eq('is_archived', false).order('name'),
     canCreate
       ? supabase.from('payment_declarations').select('id, order_number, product_id, products(name, code)').eq('status', 'paiement_confirme')
       : Promise.resolve({ data: [] }),
@@ -97,6 +119,8 @@ export async function render(container) {
   if (note) say(note.text, note.type);
   const done = (text) => { pending = { text, type: 'success' }; render(container); };
 
+  const hasColorsById = Object.fromEntries(productRes.data.map((p) => [p.id, p.has_colors !== false]));
+
   // Création d'un colis
   const createForm = container.querySelector('#create-ship');
   if (createForm) {
@@ -106,9 +130,10 @@ export async function render(container) {
     const fillColors = () => {
       const productId = decl.selectedOptions[0]?.dataset.product;
       const list = colorsByProduct[productId] || [];
+      const enabled = hasColorsById[productId] !== false;
       color.innerHTML = '<option value="">Sans couleur (facultatif)</option>'
-        + list.map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')
-        + '<option value="__new__">+ Ajouter une couleur disponible…</option>';
+        + (enabled ? list.map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('') : '')
+        + (enabled ? '<option value="__new__">+ Ajouter une couleur disponible…</option>' : '');
       color.dataset.product = productId || '';
     };
     decl.addEventListener('change', fillColors);

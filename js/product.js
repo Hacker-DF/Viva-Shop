@@ -29,7 +29,7 @@ export async function render(container) {
   const extra = await listProductImages([p.id]).then((m) => m[p.id] || []).catch(() => []);
   const list = allImages(p, extra);
   const image = list.length
-    ? `<div class="gallery">${list.map((u) => `<img src="${escapeHtml(u)}" alt="${escapeHtml(p.name)}">`).join('')}</div>`
+    ? `<div class="gallery-wrap"><div class="gallery">${list.map((u) => `<img src="${escapeHtml(u)}" alt="${escapeHtml(p.name)}">`).join('')}</div>${list.length > 1 ? `<div class="gallery-dots">${list.map((_, i) => `<span class="${i === 0 ? 'on' : ''}"></span>`).join('')}</div>` : ''}</div>`
     : `<div class="product-placeholder large">${icon('package')}</div>`;
 
   container.innerHTML = `
@@ -60,6 +60,14 @@ export async function render(container) {
       </div>
     </article>`;
 
+  const gallery = container.querySelector('.gallery');
+  if (gallery) {
+    const dots = container.querySelectorAll('.gallery-dots span');
+    gallery.addEventListener('scroll', () => {
+      const i = Math.round(gallery.scrollLeft / gallery.clientWidth);
+      dots.forEach((d, k) => d.classList.toggle('on', k === i));
+    }, { passive: true });
+  }
   const msg = container.querySelector('#product-msg');
   const show = (text, type) => { msg.className = `alert alert-${type}`; msg.textContent = text; msg.hidden = false; };
 

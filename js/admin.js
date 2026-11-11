@@ -109,7 +109,7 @@ export async function render(container) {
 
 async function loadProducts() {
   const { data, error } = await supabase.from('products')
-    .select('id, code, name, description, category_id, price_ht, promo_price, main_image_url, status, is_archived')
+    .select('id, code, name, description, category_id, price_ht, promo_price, main_image_url, status, is_archived, has_colors')
     .order('created_at', { ascending: false });
   if (error) throw error;
   return data;
@@ -161,10 +161,27 @@ async function openForm(container, product, categories, say, onSaved) {
       </div>
       <label>Statut commercial<select name="status">${statusOptions}</select></label>
       <label>Adresse de l'image principale (https)<input name="image" type="url" placeholder="https://…" value="${escapeHtml(v.main_image_url || '')}"></label>
-      <label>Photo du produit (JPG, PNG ou WebP, 5 Mo maximum)
-        <input name="photo" type="file" accept="image/jpeg,image/png,image/webp">
+      <div class="field-block">
+        <span class="field-label">Photo principale</span>
+        <label class="file-drop" data-empty="Choisir la photo principale">
+          <input class="visually-hidden" name="photo" type="file" accept="image/jpeg,image/png,image/webp">
+          <span class="file-drop-icon" aria-hidden="true">+</span>
+          <span class="file-drop-text">Choisir la photo principale</span>
+        </label>
+      </div>
+      <div class="field-block">
+        <span class="field-label">Photos supplémentaires (défilement sur la fiche)</span>
+        <label class="file-drop" data-empty="Ajouter des photos">
+          <input class="visually-hidden" name="gallery" type="file" multiple accept="image/jpeg,image/png,image/webp">
+          <span class="file-drop-icon" aria-hidden="true">+</span>
+          <span class="file-drop-text">Ajouter des photos</span>
+        </label>
+      </div>
+      <label class="check-line">
+        <input name="has_colors" type="checkbox" ${v.has_colors === false ? '' : 'checked'}>
+        Ce produit propose des couleurs (choisies lors de l’ajout d’un colis)
       </label>
-      <p class="hint">La photo envoyée remplace l’adresse d’image ci-dessus. Une image carrée (800 × 800 px) s’affiche mieux.</p>
+      <p class="hint"><strong>Minimum 3 photos par produit</strong>, photo principale comprise. Une image carrée (800 × 800 px) s’affiche mieux.</p>
       <p class="field-error" id="form-error" hidden></p>
       <div class="actions">
         <button class="btn btn-primary btn-block" type="submit">Enregistrer</button>
@@ -175,8 +192,9 @@ async function openForm(container, product, categories, say, onSaved) {
   const form = wrap.querySelector('form');
   const err = wrap.querySelector('#form-error');
   wrap.querySelector('[data-cancel]').addEventListener('click', () => { wrap.hidden = true; wrap.innerHTML = ''; });
+  bindFileDrops(wrap);
   if (product) {
-    renderColorManager(wrap, product.id, say);
+    if (product.has_colors !== false) renderColorManager(wrap, product.id, say);
     renderImageManager(wrap, product.id, say);
   }
 
@@ -196,6 +214,23 @@ async function openForm(container, product, categories, say, onSaved) {
     else if (promo !== null && (!Number.isInteger(promo) || promo < 0 || promo > price)) problem = 'La promotion doit être un entier entre 0 et le prix HT.';
     else if (image && !image.startsWith('https://')) problem = 'L’adresse de l’image doit commencer par https://';
     if (problem) { err.textContent = problem; err.hidden = false; return; }
+
+    // Minimum de 5 photos par produit, photo principale comprise
+    const newPhoto = fd.get('photo');
+    const galleryCount = fd.getAll('gallery').filter((f) => f && f.size > 0).length;
+    const mainCount = (newPhoto && newPhoto.size > 0) || image ? 1 : 0;
+    let existingCount = 0;
+    if (product) {
+      const { count } = await supabase.from('product_images')
+        .select('id', { count: 'exact', head: true }).eq('product_id', product.id);
+      existingCount = count || 0;
+    }
+    const totalPhotos = mainCount + galleryCount + existingCount;
+    if (totalPhotos < 3) {
+      err.textContent = `Un produit doit avoir au moins 3 photos, photo principale comprise. Actuellement : ${totalPhotos}.`;
+      err.hidden = false;
+      return;
+    }
 
     // Téléversement de la photo (si une photo est choisie)
     let imageUrl = image || null;
@@ -218,14 +253,22 @@ async function openForm(container, product, categories, say, onSaved) {
       promo_price: promo,
       status: String(fd.get('status')),
       main_image_url: imageUrl,
+      has_colors: fd.has('has_colors'),
     };
 
     const request = product
       ? supabase.from('products').update(payload).eq('id', product.id).select('code').single()
-      : supabase.from('products').insert(payload).select('code').single();
+      : supabase.from('products').insert(payload).select('id, code').single();
     const { data, error } = await request;
 
     if (error) { err.textContent = translateError(error); err.hidden = false; return; }
+    if (!product) {
+      const extra = fd.getAll('gallery').filter((f) => f && f.size > 0);
+      if (extra.length) {
+        const galleryError = await uploadGalleryPhotos(data.id, extra);
+        if (galleryError) { err.textContent = galleryError; err.hidden = false; }
+      }
+    }
     onSaved(product ? 'Produit modifié.' : `Produit créé. Code : ${data.code}`);
   });
 }
@@ -276,6 +319,7 @@ async function renderColorManager(wrap, productId, say) {
     reload();
   });
 
+  bindFileDrops(section);
   wrap.appendChild(section);
 }
 
@@ -292,7 +336,7 @@ async function renderImageManager(wrap, productId, say) {
 
   section.innerHTML = `
     <h2>Photos du produit</h2>
-    <p class="hint">Sur la boutique, les photos défilent en boucle. Sur la fiche, le client les parcourt en glissant.</p>
+    <p class="hint">Minimum 3 photos par produit, photo principale comprise. Vous en avez <strong>${imgs.length}</strong> en plus de la principale. Sur la fiche, le client les parcourt en glissant.</p>
     <div class="thumbs">
       ${imgs.map((i) => `
         <div class="thumb">
@@ -301,10 +345,12 @@ async function renderImageManager(wrap, productId, say) {
         </div>`).join('') || '<p class="product-code">Aucune photo supplémentaire.</p>'}
     </div>
     <form id="img-add" novalidate>
-      <label>Ajouter des photos (plusieurs possibles, 5 Mo maximum chacune)
-        <input name="photos" type="file" multiple accept="image/jpeg,image/png,image/webp">
+      <label class="file-drop" data-empty="Ajouter des photos">
+        <input class="visually-hidden" name="photos" type="file" multiple accept="image/jpeg,image/png,image/webp">
+        <span class="file-drop-icon" aria-hidden="true">+</span>
+        <span class="file-drop-text">Ajouter des photos</span>
       </label>
-      <button class="btn btn-ghost btn-block" type="submit">Téléverser les photos</button>
+      <button class="btn btn-primary btn-block" type="submit">Téléverser les photos</button>
     </form>`;
 
   section.addEventListener('click', async (e) => {
@@ -339,5 +385,37 @@ async function renderImageManager(wrap, productId, say) {
     reload();
   });
 
+  bindFileDrops(section);
   wrap.appendChild(section);
+}
+
+
+/** Affiche le nombre de fichiers choisis dans chaque zone de dépôt. */
+function bindFileDrops(root) {
+  root.querySelectorAll('.file-drop').forEach((label) => {
+    const input = label.querySelector('input[type="file"]');
+    const text = label.querySelector('.file-drop-text');
+    if (!input || !text) return;
+    input.addEventListener('change', () => {
+      const n = input.files.length;
+      label.dataset.count = String(n);
+      text.textContent = n ? `${n} photo(s) choisie(s)` : label.dataset.empty;
+    });
+  });
+}
+
+/** Envoie les photos supplémentaires d'un produit venant d'être créé. Retourne un message d'erreur ou null. */
+async function uploadGalleryPhotos(productId, files) {
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    if (file.size > 5 * 1024 * 1024) return `La photo « ${file.name} » dépasse 5 Mo.`;
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    const path = `produits/${productId}/${Date.now()}-${i}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error: upError } = await supabase.storage.from('produits').upload(path, file, { contentType: file.type, upsert: false });
+    if (upError) return translateError(upError);
+    const url = supabase.storage.from('produits').getPublicUrl(path).data.publicUrl;
+    const { error: insError } = await supabase.from('product_images').insert({ product_id: productId, url, position: i });
+    if (insError) return translateError(insError);
+  }
+  return null;
 }

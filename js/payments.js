@@ -5,6 +5,7 @@
 import { supabase } from './supabase.js';
 import { getSession } from './auth.js';
 import { APP_CONFIG } from './config.js';
+import { t } from './i18n.js';
 
 /** Moyens de paiement. channelIndex renvoie vers APP_CONFIG.paymentChannels (jamais de numéro inventé). */
 export const METHODS = {
@@ -14,13 +15,34 @@ export const METHODS = {
 };
 
 export const PAYMENT_STATUS = {
-  en_attente_verification: { label: 'En attente de vérification', color: 'var(--status-red)' },
-  en_cours_verification: { label: 'En cours de vérification', color: 'var(--electric)' },
-  paiement_confirme: { label: 'Paiement confirmé', color: 'var(--status-green)' },
-  montant_incorrect: { label: 'Montant incorrect', color: 'var(--status-orange)' },
-  transaction_introuvable: { label: 'Transaction introuvable', color: 'var(--status-orange)' },
-  declaration_rejetee: { label: 'Déclaration rejetée', color: 'var(--status-red)' },
-  rembourse: { label: 'Remboursé', color: 'var(--status-grey)' },
+  en_attente_verification: {
+    get label() { return t('st.pay.en_attente_verification'); },
+    color: 'var(--status-red)',
+  },
+  en_cours_verification: {
+    get label() { return t('st.pay.en_cours_verification'); },
+    color: 'var(--electric)',
+  },
+  paiement_confirme: {
+    get label() { return t('st.pay.paiement_confirme'); },
+    color: 'var(--status-green)',
+  },
+  montant_incorrect: {
+    get label() { return t('st.pay.montant_incorrect'); },
+    color: 'var(--status-orange)',
+  },
+  transaction_introuvable: {
+    get label() { return t('st.pay.transaction_introuvable'); },
+    color: 'var(--status-orange)',
+  },
+  declaration_rejetee: {
+    get label() { return t('st.pay.declaration_rejetee'); },
+    color: 'var(--status-red)',
+  },
+  rembourse: {
+    get label() { return t('st.pay.rembourse'); },
+    color: 'var(--status-grey)',
+  },
 };
 
 /** Numéro officiel et bénéficiaire d'un moyen de paiement, ou null (virement). */
@@ -54,7 +76,7 @@ export async function createDeclaration(d) {
 /** Déclarations de l'utilisateur connecté, les plus récentes d'abord. */
 export async function listMyDeclarations() {
   const { data, error } = await supabase.from('payment_declarations')
-    .select('id, order_number, quantity, variant, amount, payment_method, ref_code, txn_id, status, verified_at, verify_token, whatsapp_sent_at, created_at, products(code, name)')
+    .select('id, order_number, quantity, variant, amount, payment_method, ref_code, txn_id, status, verified_at, payment_date, verify_token, whatsapp_sent_at, created_at, products(code, name)')
     .order('created_at', { ascending: false });
   if (error) throw error;
   return data;

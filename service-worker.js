@@ -8,7 +8,7 @@
  *
  * ⚠️ Incrémenter CACHE_VERSION à chaque mise à jour des fichiers statiques.
  */
-const CACHE_VERSION = 'v49';
+const CACHE_VERSION = 'v55';
 const CACHE_NAME = `cct-static-${CACHE_VERSION}`;
 
 const STATIC_ASSETS = [
@@ -36,6 +36,8 @@ const STATIC_ASSETS = [
   'js/auth.js',
   'js/auth-pages.js',
   'js/profile.js',
+  'js/i18n-status.js',
+  'js/i18n-guide.js',
   'js/products.js',
   'js/shop.js',
   'js/product.js',

@@ -9,8 +9,12 @@ import { getSession, getRoleCodes, translateError } from './auth.js';
 import { formatFcfa } from './products.js';
 
 const STATUS = {
-  recue: 'Reçue', etude: 'En étude', devis_envoye: 'Devis envoyé',
-  acceptee: 'Acceptée', refusee: 'Refusée', annulee: 'Annulée',
+  get recue() { return t('st.sp.recue'); },
+  get etude() { return t('st.sp.etude'); },
+  get devis_envoye() { return t('st.sp.devis_envoye'); },
+  get acceptee() { return t('st.sp.acceptee'); },
+  get refusee() { return t('st.sp.refusee'); },
+  get annulee() { return t('st.sp.annulee'); },
 };
 const STAFF_ROLES = ['administrateur_principal', 'responsable_commandes'];
 

@@ -9,9 +9,18 @@ import { supabase } from './supabase.js';
 import { getSession, getRoleCodes, translateError } from './auth.js';
 
 const STATUS = {
-  ouverte: { label: 'Ouverte', color: 'var(--status-red)' },
-  en_cours: { label: 'En cours de traitement', color: 'var(--status-orange)' },
-  resolue: { label: 'Résolue', color: 'var(--status-green)' },
+  ouverte: {
+    get label() { return t('st.sup.ouverte'); },
+    color: 'var(--status-red)',
+  },
+  en_cours: {
+    get label() { return t('st.sup.en_cours'); },
+    color: 'var(--status-orange)',
+  },
+  resolue: {
+    get label() { return t('st.sup.resolue'); },
+    color: 'var(--status-green)',
+  },
 };
 const STAFF_ROLES = ['administrateur_principal', 'support_client', 'responsable_commandes'];
 

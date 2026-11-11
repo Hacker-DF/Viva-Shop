@@ -4,15 +4,28 @@
  */
 import { supabase } from './supabase.js';
 import { getSession } from './auth.js';
+import { t } from './i18n.js';
 
 const PRODUCT_COLUMNS = 'id, code, name, description, price_ht, promo_price, main_image_url, status, created_at';
 
 /** Statuts commerciaux (section 7 du cahier des charges). */
 export const STATUS_LABELS = {
-  en_attente: { label: 'En attente', color: 'var(--status-red)' },
-  collecte_ouverte: { label: 'Collecte ouverte', color: 'var(--status-green)' },
-  commande_cloturee: { label: 'Commande clôturée', color: 'var(--status-grey)' },
-  situation_particuliere: { label: 'Situation particulière', color: 'var(--status-orange)' },
+  en_attente: {
+    get label() { return t('st.prod.en_attente'); },
+    color: 'var(--status-red)',
+  },
+  collecte_ouverte: {
+    get label() { return t('st.prod.collecte_ouverte'); },
+    color: 'var(--status-green)',
+  },
+  commande_cloturee: {
+    get label() { return t('st.prod.commande_cloturee'); },
+    color: 'var(--status-grey)',
+  },
+  situation_particuliere: {
+    get label() { return t('st.prod.situation_particuliere'); },
+    color: 'var(--status-orange)',
+  },
 };
 
 function client() {
