@@ -86,15 +86,18 @@ export async function render(container) {
     <h2 class="section-title">${escapeHtml(t('res.title'))}</h2>
     <p class="hint">${escapeHtml(t('res.note'))}</p>
     ${reservations.length ? `
+      <div class="admin-toolbar"><button id="delete-selected-res" class="btn btn-ghost btn-small" type="button">${escapeHtml(t('del.delete_selected'))}</button></div>
       <ul class="admin-list" id="reservations">
         ${reservations.map((r) => `
           <li class="admin-row">
+            ${(r.status === 'annulee' || r.products?.status === 'commande_cloturee') ? `<label class="check-line sel"><input type="checkbox" data-del-res="${r.id}"> ${escapeHtml(t('del.select'))}</label>` : ''}
             <div class="admin-row-main">
               <strong>${escapeHtml(r.products?.name || t('orders.product'))}</strong>
               <span class="product-code">${escapeHtml(t('orders.code'))} ${escapeHtml(r.products?.code || '')} · ${escapeHtml(t('orders.qty'))} ${r.quantity}${r.variant ? ' · ' + escapeHtml(r.variant) : ''}</span>
             </div>
             <span class="status-badge" style="--c: ${r.status === 'annulee' ? 'var(--status-grey)' : 'var(--electric)'}">${escapeHtml(r.status === 'annulee' ? t('res.status_cancelled') : t('res.status_active'))}</span>
             ${r.status === 'enregistree' ? `<button class="btn btn-ghost btn-small" type="button" data-cancel="${r.id}">${escapeHtml(t('res.cancel'))}</button>` : ''}
+            ${(r.status === 'annulee' || r.products?.status === 'commande_cloturee') ? `<button class="btn btn-ghost btn-small" type="button" data-hide="${r.id}">${escapeHtml(t('res.hide'))}</button>` : ''}
           </li>`).join('')}
       </ul>` : `<p class="empty">${escapeHtml(t('res.none'))}</p>`}`;
 
@@ -114,6 +117,27 @@ export async function render(container) {
     badge.style.setProperty('--c', 'var(--status-grey)');
     btn.remove();
     say(t('res.cancelled'), 'success');
+  });
+
+  container.querySelector('#reservations')?.addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-hide]');
+    if (!btn) return;
+    if (!window.confirm(t('res.hide_confirm'))) return;
+    btn.disabled = true;
+    const { error: hideError } = await supabase.rpc('hide_reservation', { p_id: btn.dataset.hide });
+    if (hideError) { btn.disabled = false; say(translateError(hideError), 'error'); return; }
+    btn.closest('li').remove();
+    say(t('res.hidden'), 'success');
+  });
+
+  container.querySelector('#delete-selected-res')?.addEventListener('click', async () => {
+    const boxes = [...container.querySelectorAll('input[data-del-res]:checked')];
+    if (!boxes.length) return say(t('del.none'), 'error');
+    if (!window.confirm(t('del.delete_confirm'))) return;
+    const { error: delError } = await supabase.rpc('delete_my_reservations', { p_ids: boxes.map((b) => b.dataset.delRes) });
+    if (delError) return say(translateError(delError), 'error');
+    boxes.forEach((b) => b.closest('li')?.remove());
+    say(t('res.deleted'), 'success');
   });
 
   container.querySelector('#payments')?.addEventListener('click', async (e) => {

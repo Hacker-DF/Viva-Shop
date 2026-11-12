@@ -41,6 +41,7 @@ export async function render(container) {
   const { data: sinceData, error: sinceError } = await supabase.rpc('dashboard_since');
   if (sinceError) throw sinceError;
   const since = sinceData || '1970-01-01T00:00:00Z';
+  const isOwner = (await getRoleCodes()).includes('proprietaire');
 
   const [clients, products, reservations, toVerify, confirmed, inTransit, delivered, openTickets,
     amounts, statuses, profiles, audit] = await Promise.all([
@@ -93,7 +94,8 @@ export async function render(container) {
 
   container.innerHTML = `
     <div class="admin-toolbar"><h1>${t('pf.staff.dash')}</h1>
-      <button id="reset-dash" class="btn btn-ghost btn-small" type="button">${t('db.reset_btn')}</button></div>
+      ${isOwner ? `<button id="reset-dash" class="btn btn-ghost btn-small" type="button">${t('db.reset_btn')}</button>
+      <button id="purge-tests" class="btn btn-ghost btn-small" type="button">${t('db.purge_btn')}</button>` : ''}</div>
     <p class="hint">${t('db.since')} ${escapeHtml(new Date(since).toLocaleDateString('fr-FR'))}</p>
 
     <div class="kpis">
@@ -167,6 +169,7 @@ function clientRowHtml(p) {
 
 /** Fiche client : déclarations, activité et suspension du compte. */
 async function renderClient(container, id) {
+  const canSuspend = (await getRoleCodes()).includes('proprietaire');
   const { data: p, error } = await supabase.from('profiles').select('*').eq('id', id).maybeSingle();
   if (error) throw error;
   if (!p) {
@@ -197,9 +200,9 @@ async function renderClient(container, id) {
         ${kpi('Colis', shipmentCount)}
         ${kpi('Demandes', ticketCount)}
       </div>
-      <button id="suspend" class="btn ${p.is_suspended ? 'btn-primary' : 'btn-ghost'} btn-block" type="button">
+      ${canSuspend ? `<button id="suspend" class="btn ${p.is_suspended ? 'btn-primary' : 'btn-ghost'} btn-block" type="button">
         ${p.is_suspended ? t('db.reactivate') : t('db.suspend')}
-      </button>
+      </button>` : ''}
     </section>
 
     <section class="card">
@@ -306,6 +309,15 @@ async function drawCharts(d) {
 
 /** Réinitialisation des statistiques : confirmation écrite, puis remise à zéro à partir de maintenant. */
 document.addEventListener('click', async (e) => {
+  if (e.target.id === 'purge-tests') {
+    const typed = window.prompt(t('db.purge_prompt'));
+    if (typed !== 'EFFACER-LES-ESSAIS') return;
+    const { error } = await supabase.rpc('purge_test_data', { p_confirm: typed });
+    if (error) { window.alert(translateError(error)); return; }
+    window.alert(t('db.purge_done'));
+    window.location.reload();
+    return;
+  }
   if (e.target.id !== 'reset-dash') return;
   const typed = window.prompt(t('db.reset_prompt'));
   if (typed !== 'REINITIALISER') return;

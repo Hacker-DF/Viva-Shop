@@ -55,6 +55,13 @@ export async function render(container) {
     }
     return (await import('./team.js')).render(container);
   }
+  if (window.location.hash.split('/')[2] === 'reservations') {
+    if (!isPrincipal) {
+      container.innerHTML = `<div class="alert alert-error">${t('adm.principal_only')}</div>`;
+      return;
+    }
+    return (await import('./reservations-admin.js')).render(container);
+  }
   if (window.location.hash.split('/')[2] === 'journal') {
     if (!isPrincipal) {
       container.innerHTML = `<div class="alert alert-error">${t('adm.principal_only')}</div>`;
@@ -77,6 +84,7 @@ export async function render(container) {
       <a class="btn btn-ghost btn-small" href="#/admin/campagnes">${t('adm.campaigns')}</a>
       ${isPrincipal ? `<a class="btn btn-ghost btn-small" href="#/admin/equipe">${t('team.title')}</a>` : ''}
       ${isPrincipal ? `<a class="btn btn-ghost btn-small" href="#/admin/journal">${t('jr.title')}</a>` : ''}
+      ${isPrincipal ? `<a class="btn btn-ghost btn-small" href="#/admin/reservations">${t('res.admin_title')}</a>` : ''}
       <button id="new" class="btn btn-gold" type="button">${icon('tag')} ${t('adm.new')}</button>
     </div>
     <div id="admin-msg" class="alert" role="status" hidden></div>

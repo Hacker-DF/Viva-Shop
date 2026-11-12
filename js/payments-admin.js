@@ -41,6 +41,7 @@ export async function render(container) {
 
   const { data, error } = await supabase.from('payment_declarations')
     .select('id, order_number, amount, payer_name, payer_phone, payment_method, ref_code, txn_id, status, verification_note, proof_path, products(code, name), profiles(first_name, last_name, username, phone, city)')
+    .is('hidden_at', null)
     .order('created_at', { ascending: false })
     .limit(50);
   if (error) throw error;
@@ -51,13 +52,23 @@ export async function render(container) {
     </div>
     <p class="alert alert-info">${t('pay.intro')}</p>
     <div id="pay-msg" class="alert" role="status" hidden></div>
+    <div class="admin-toolbar"><button id="hide-selected" class="btn btn-ghost btn-small" type="button">${t('del.hide_selected')}</button></div>
     <ul class="admin-list" id="pay-list">
-      ${data.map(card).join('') || `<li class="empty">${t('pay.empty')}</li>`}
+      ${data.map(selectable).join('') || `<li class="empty">${t('pay.empty')}</li>`}
     </ul>`;
 
   const msg = container.querySelector('#pay-msg');
   const say = (text, type) => { msg.className = `alert alert-${type}`; msg.textContent = text; msg.hidden = false; };
   if (note) say(note.text, note.type);
+
+  container.querySelector('#hide-selected')?.addEventListener('click', async () => {
+    const boxes = [...container.querySelectorAll('input[data-hide-id]:checked')];
+    if (!boxes.length) return window.alert(t('del.none'));
+    if (!window.confirm(t('del.hide_confirm'))) return;
+    const { error: hideError } = await supabase.rpc('hide_rejected_payments', { p_ids: boxes.map((b) => b.dataset.hideId) });
+    if (hideError) return window.alert(translateError(hideError));
+    boxes.forEach((b) => b.closest('li')?.remove());
+  });
 
   container.querySelector('#pay-list').addEventListener('click', async (e) => {
     const proofBtn = e.target.closest('button[data-proof]');
@@ -94,6 +105,13 @@ export async function render(container) {
     pending = { text: t('pay.updated'), type: 'success' };
     render(container);
   });
+}
+
+/** Case à cocher ajoutée uniquement aux paiements rejetés (les seuls masquables). */
+function selectable(d) {
+  const html = card(d);
+  if (d.status !== 'declaration_rejetee') return html;
+  return html.replace(/<li([^>]*)>/, (m) => `${m}<label class="check-line sel"><input type="checkbox" data-hide-id="${d.id}"> ${t('del.select')}</label>`);
 }
 
 function card(d) {

@@ -15,6 +15,7 @@ import { supabase } from './supabase.js';
 import { renderAddresses } from './addresses.js';
 import { t } from './i18n.js';
 import { pushSupported, isSubscribed, enablePush, disablePush } from './push.js';
+import { renderInvite } from './invite.js';
 
 const PASSWORD_RE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9]).{8,}$/;
 
@@ -24,6 +25,7 @@ const SECTIONS = {
   'photo': { get title() { return t('pf.sec.photo'); } },
   'adresses': { get title() { return t('pf.sec.addresses'); } },
   'notifications': { get title() { return t('push.title'); } },
+  'inviter': { get title() { return t('inv.title'); } },
   'mot-de-passe': { get title() { return t('pf.sec.password'); } },
 };
 
@@ -55,27 +57,51 @@ export async function render(container) {
 
 /* ---------- Menu principal ---------- */
 
-function row(href, iconName, title, subtitle = '') {
+function row(href, iconName, title, subtitle = '', badge = 0) {
   return `
     <a class="menu-row" href="${href}">
       ${icon(iconName)}
       <span><strong>${escapeHtml(title)}</strong>${subtitle ? `<small>${escapeHtml(subtitle)}</small>` : ''}</span>
+      ${badge > 0 ? `<span class="menu-alert" aria-label="${badge}">${badge}</span>` : ''}
       <span class="chev" aria-hidden="true">›</span>
     </a>`;
 }
 
-function renderMenu(container, { profile, roles, codes, email }) {
+/** Nombre d'éléments à traiter, par domaine, selon les droits de la personne connectée. */
+async function staffCounts(has) {
+  const count = async (table, filter) => {
+    const { count: n } = await filter(supabase.from(table).select('*', { count: 'exact', head: true }));
+    return n || 0;
+  };
+  const out = {};
+  if (has(['administrateur_principal', 'agent_financier'])) {
+    out.pay = await count('payment_declarations', (q) => q.in('status', ['en_attente_verification', 'en_cours_verification']));
+  }
+  if (has(['administrateur_principal', 'responsable_commandes'])) {
+    out.req = await count('special_orders', (q) => q.in('status', ['recue', 'etude']));
+  }
+  if (has(['administrateur_principal', 'support_client', 'responsable_commandes'])) {
+    out.sup = await count('support_tickets', (q) => q.in('status', ['ouverte', 'en_cours']));
+  }
+  if (has(['administrateur_principal', 'agent_chine', 'responsable_logistique', 'agent_livraison'])) {
+    out.log = await count('shipments', (q) => q.in('status', ['transmise_chine', 'arrive_togo']));
+  }
+  return out;
+}
+
+async function renderMenu(container, { profile, roles, codes, email }) {
   const has = (list) => codes.some((c) => list.includes(c));
   const initials = `${profile.first_name[0] || ''}${profile.last_name[0] || ''}`;
 
+  const counts = await staffCounts(has);
   const staffRows = [];
   if (has(['administrateur_principal', 'gestionnaire_produits'])) staffRows.push(row('#/admin', 'shield', t('admin.products'), t('pf.staff.products_sub')));
   if (has(['administrateur_principal'])) staffRows.push(row('#/admin/tableau', 'shield', t('pf.staff.dash'), t('pf.staff.dash_sub')));
   if (has(['administrateur_principal', 'gestionnaire_produits', 'responsable_logistique'])) staffRows.push(row('#/admin/annonces', 'message', t('ann.title'), t('pf.staff.ann_sub')));
-  if (has(['administrateur_principal', 'agent_financier'])) staffRows.push(row('#/admin/paiements', 'credit-card', t('pay.title'), t('pf.staff.pay_sub')));
-  if (has(['administrateur_principal', 'agent_chine', 'responsable_logistique', 'agent_livraison'])) staffRows.push(row('#/admin/logistique', 'truck', t('pf.staff.log'), t('pf.staff.log_sub')));
-  if (has(['administrateur_principal', 'responsable_commandes'])) staffRows.push(row('#/admin/demandes', 'package', t('pf.staff.req'), t('pf.staff.req_sub')));
-  if (has(['administrateur_principal', 'support_client', 'responsable_commandes'])) staffRows.push(row('#/admin/support', 'support', t('pf.staff.sup'), t('pf.staff.sup_sub')));
+  if (has(['administrateur_principal', 'agent_financier'])) staffRows.push(row('#/admin/paiements', 'credit-card', t('pay.title'), t('pf.staff.pay_sub'), counts.pay));
+  if (has(['administrateur_principal', 'agent_chine', 'responsable_logistique', 'agent_livraison'])) staffRows.push(row('#/admin/logistique', 'truck', t('pf.staff.log'), t('pf.staff.log_sub'), counts.log));
+  if (has(['administrateur_principal', 'responsable_commandes'])) staffRows.push(row('#/admin/demandes', 'package', t('pf.staff.req'), t('pf.staff.req_sub'), counts.req));
+  if (has(['administrateur_principal', 'support_client', 'responsable_commandes'])) staffRows.push(row('#/admin/support', 'support', t('pf.staff.sup'), t('pf.staff.sup_sub'), counts.sup));
   if (has(['administrateur_principal'])) staffRows.push(row('#/admin/equipe', 'user', t('team.title'), t('pf.staff.team_sub')));
 
   container.innerHTML = `
@@ -97,6 +123,7 @@ function renderMenu(container, { profile, roles, codes, email }) {
       ${row('#/compte/infos', 'user', t('pf.sec.infos'), t('pf.row.info'))}
       ${row('#/compte/identifiants', 'lock', t('pf.sec.id'), `@${profile.username}`)}
       ${row('#/compte/notifications', 'bell', t('push.title'), t('push.sub'))}
+      ${row('#/compte/inviter', 'message', t('inv.title'), t('inv.sub'))}
       ${row('#/compte/photo', 'user', t('pf.sec.photo'), t('pf.row.photo'))}
     </nav>
 
@@ -230,6 +257,11 @@ async function renderSection(container, key, view) {
       form.reset();
       showMsg(msg, t('id.email_sent'), 'success');
     });
+    return;
+  }
+
+  if (key === 'inviter') {
+    renderInvite(container, head);
     return;
   }
 

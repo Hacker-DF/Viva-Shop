@@ -5,7 +5,7 @@
  */
 import { escapeHtml } from './ui.js';
 import { supabase } from './supabase.js';
-import { translateError } from './auth.js';
+import { translateError, getRoleCodes } from './auth.js';
 import { t } from './i18n.js';
 
 /** Message à afficher après le rechargement de la page. */
@@ -14,6 +14,11 @@ let pending = null;
 export async function render(container) {
   const note = pending;
   pending = null;
+
+  if (!(await getRoleCodes()).includes('proprietaire')) {
+    container.innerHTML = `<div class="admin-toolbar"><h1>${t('team.title')}</h1></div><div class="alert alert-info">${t('team.owner_only')}</div>`;
+    return;
+  }
 
   const [rolesRes, profilesRes, linksRes] = await Promise.all([
     supabase.from('roles').select('code, label').order('label'),

@@ -136,7 +136,8 @@ export async function createReservation({ productId, quantity, variant, capacity
 export async function listMyReservations() {
   const { data, error } = await client()
     .from('reservations')
-    .select('id, quantity, variant, capacity, status, created_at, products(code, name)')
+    .select('id, quantity, variant, capacity, status, created_at, products(code, name, status)')
+    .is('hidden_at', null)
     .order('created_at', { ascending: false });
   if (error) throw error;
   return data;
