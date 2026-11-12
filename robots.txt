@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://viva-shop.vercel.app/sitemap.xml
