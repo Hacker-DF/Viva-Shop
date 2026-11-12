@@ -37,23 +37,28 @@ export async function render(container) {
   const clientId = window.location.hash.split('/')[3];
   if (clientId) return renderClient(container, clientId);
 
+  // Chiffres comptés depuis la dernière réinitialisation (les données ne sont pas supprimées)
+  const { data: sinceData, error: sinceError } = await supabase.rpc('dashboard_since');
+  if (sinceError) throw sinceError;
+  const since = sinceData || '1970-01-01T00:00:00Z';
+
   const [clients, products, reservations, toVerify, confirmed, inTransit, delivered, openTickets,
     amounts, statuses, profiles, audit] = await Promise.all([
     countRows('profiles'),
     countRows('products', (q) => q.eq('is_archived', false)),
-    countRows('reservations'),
-    countRows('payment_declarations', (q) => q.in('status', ['en_attente_verification', 'en_cours_verification'])),
-    countRows('payment_declarations', (q) => q.eq('status', 'paiement_confirme')),
-    countRows('shipments', (q) => q.neq('status', 'livre')),
-    countRows('shipments', (q) => q.eq('status', 'livre')),
-    countRows('support_tickets', (q) => q.neq('status', 'resolue')),
-    supabase.from('payment_declarations').select('amount, verified_at').eq('status', 'paiement_confirme'),
-    supabase.from('payment_declarations').select('status'),
+    countRows('reservations', (q) => q.gte('created_at', since)),
+    countRows('payment_declarations', (q) => q.in('status', ['en_attente_verification', 'en_cours_verification']).gte('created_at', since)),
+    countRows('payment_declarations', (q) => q.eq('status', 'paiement_confirme').gte('created_at', since)),
+    countRows('shipments', (q) => q.neq('status', 'livre').gte('created_at', since)),
+    countRows('shipments', (q) => q.eq('status', 'livre').gte('created_at', since)),
+    countRows('support_tickets', (q) => q.neq('status', 'resolue').gte('created_at', since)),
+    supabase.from('payment_declarations').select('amount, verified_at').eq('status', 'paiement_confirme').gte('created_at', since),
+    supabase.from('payment_declarations').select('status').gte('created_at', since),
     supabase.from('profiles').select('id, username, first_name, last_name, phone, city, created_at, is_suspended')
       .order('created_at', { ascending: false }).limit(200),
     supabase.from('audit_logs').select('action, created_at').order('created_at', { ascending: false }).limit(15),
   ]);
-  const shipStatuses = await supabase.from('shipments').select('status');
+  const shipStatuses = await supabase.from('shipments').select('status').gte('created_at', since);
   for (const r of [amounts, statuses, profiles, audit, shipStatuses]) if (r.error) throw r.error;
 
   const revenue = amounts.data.reduce((sum, r) => sum + r.amount, 0);
@@ -87,7 +92,9 @@ export async function render(container) {
   const chartData = { statusLabels, statusCounts, statusColors, days, revenue: revenueSeries, shipLabels, shipCounts, shipColors };
 
   container.innerHTML = `
-    <div class="admin-toolbar"><h1>${t('pf.staff.dash')}</h1></div>
+    <div class="admin-toolbar"><h1>${t('pf.staff.dash')}</h1>
+      <button id="reset-dash" class="btn btn-ghost btn-small" type="button">${t('db.reset_btn')}</button></div>
+    <p class="hint">${t('db.since')} ${escapeHtml(new Date(since).toLocaleDateString('fr-FR'))}</p>
 
     <div class="kpis">
       ${kpi(t('db.clients'), clients)}
@@ -296,3 +303,14 @@ async function drawCharts(d) {
     options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } },
   });
 }
+
+/** Réinitialisation des statistiques : confirmation écrite, puis remise à zéro à partir de maintenant. */
+document.addEventListener('click', async (e) => {
+  if (e.target.id !== 'reset-dash') return;
+  const typed = window.prompt(t('db.reset_prompt'));
+  if (typed !== 'REINITIALISER') return;
+  const { error } = await supabase.rpc('reset_dashboard');
+  if (error) { window.alert(translateError(error)); return; }
+  window.alert(t('db.reset_done'));
+  window.location.reload();
+});

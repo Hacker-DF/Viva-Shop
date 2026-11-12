@@ -419,3 +419,9 @@
 .install-banner[hidden] { display: none; }
 .install-banner p { margin: 6px 0 10px; font-size: .92rem; }
 .install-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+
+/* Aperçu de la capture de paiement */
+.proof-preview { display: flex; gap: 12px; align-items: center; margin-top: 8px; padding: 10px; border-radius: 12px; background: #F5F9FF; }
+.proof-preview[hidden] { display: none; }
+.proof-preview img { width: 72px; height: 72px; object-fit: cover; border-radius: 10px; flex-shrink: 0; }
+.proof-preview > div { display: grid; gap: 4px; min-width: 0; word-break: break-all; }

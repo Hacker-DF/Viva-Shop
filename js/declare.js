@@ -25,6 +25,10 @@ const METHOD_GUIDE = {
 };
 
 export async function render(container) {
+  if (!container.dataset.proofBound) {
+    container.dataset.proofBound = '1';
+    container.addEventListener('change', (e) => { if (e.target.name === 'proof') showProofPreview(e.target); });
+  }
   const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
   const code = params.get('code') || '';
 
@@ -68,9 +72,15 @@ export async function render(container) {
       <div id="instructions" class="alert alert-info" hidden></div>
       <label>${escapeHtml(t('decl.txn'))}<input name="txn" maxlength="60" placeholder="${t('ph.txn')}"></label>
       <p class="hint">${escapeHtml(t('decl.ref.hint'))}</p>
-      <label>${escapeHtml(t('decl.proof'))}
-        <input name="proof" type="file" accept="image/jpeg,image/png,image/webp">
-      </label>
+      <div class="field-block">
+        <span class="field-label">${escapeHtml(t('decl.proof'))}</span>
+        <label class="file-drop" data-empty="${escapeHtml(t('decl.proof_choose'))}">
+          <input class="visually-hidden" name="proof" type="file" accept="image/jpeg,image/png,image/webp">
+          <span class="file-drop-icon" aria-hidden="true">+</span>
+          <span class="file-drop-text">${escapeHtml(t('decl.proof_choose'))}</span>
+        </label>
+        <div id="proof-preview" class="proof-preview" hidden></div>
+      </div>
       <label>${escapeHtml(t('decl.notes'))}<textarea name="notes" rows="2" maxlength="500"></textarea></label>
       <div class="alert alert-info">${escapeHtml(t('decl.help'))}
         ${APP_CONFIG.whatsapp.assistants.map((a) => `<a class="btn btn-ghost btn-small" href="https://wa.me/${a.phone.replace(/\D/g, '')}" target="_blank" rel="noopener">${escapeHtml(a.name)}</a>`).join(' ')}
@@ -143,6 +153,8 @@ export async function render(container) {
 
     submit.disabled = true;
     try {
+      const session = await getSession();
+      if (!session) throw new Error(t('decl.login'));
       // Capture d'écran : rangée dans un dossier privé à l'identifiant du client
       const proof = fd.get('proof');
       let proofPath = null;
@@ -184,4 +196,26 @@ export async function render(container) {
       submit.disabled = false;
     }
   });
+}
+
+/** Aperçu de la capture choisie : miniature, nom, taille, et alerte si elle est trop lourde. */
+function showProofPreview(input) {
+  const label = input.closest('.file-drop');
+  const box = input.closest('form')?.querySelector('#proof-preview');
+  const file = input.files[0];
+  if (label) {
+    label.dataset.count = file ? '1' : '0';
+    label.querySelector('.file-drop-text').textContent = file ? t('decl.proof_chosen') : t('decl.proof_choose');
+  }
+  if (!box) return;
+  if (!file) { box.hidden = true; box.innerHTML = ''; return; }
+  const mb = (file.size / (1024 * 1024)).toFixed(2);
+  const tooBig = file.size > 5 * 1024 * 1024;
+  box.hidden = false;
+  box.innerHTML = `<img src="${URL.createObjectURL(file)}" alt="">
+    <div>
+      <strong>${escapeHtml(file.name)}</strong>
+      <span class="hint">${mb} Mo</span>
+      ${tooBig ? `<span class="field-error">${escapeHtml(t('decl.proof_big'))}</span>` : ''}
+    </div>`;
 }
