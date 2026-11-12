@@ -232,6 +232,10 @@ async function renderSection(container, key, view) {
       <section class="card auth">
         <form id="pw-change" novalidate>
           <div class="field">
+            <label for="pw-current">Mot de passe actuel</label>
+            <input id="pw-current" name="current" type="password" autocomplete="current-password" required placeholder="••••••••">
+          </div>
+          <div class="field">
             <label for="pw-new">Nouveau mot de passe</label>
             <input id="pw-new" name="password" type="password" autocomplete="new-password" minlength="8" required placeholder="••••••••">
           </div>
@@ -246,15 +250,25 @@ async function renderSection(container, key, view) {
       </section>`;
     container.querySelector('#pw-change').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const fd = new FormData(e.currentTarget);
+      const form = e.currentTarget; // capturé avant l'attente
+      const fd = new FormData(form);
+      const current = String(fd.get('current'));
       const pw = String(fd.get('password'));
       const pw2 = String(fd.get('confirm'));
       const msg = container.querySelector('#pw-msg');
+      if (!current) { showMsg(msg, 'Saisissez votre mot de passe actuel.', 'error'); return; }
       if (!PASSWORD_RE.test(pw)) { showMsg(msg, '8 caractères minimum, avec une majuscule, une minuscule et un symbole.', 'error'); return; }
       if (pw !== pw2) { showMsg(msg, 'Les deux mots de passe ne correspondent pas.', 'error'); return; }
+      if (pw === current) { showMsg(msg, 'Le nouveau mot de passe doit être différent de l’actuel.', 'error'); return; }
+      const { data: userData } = await supabase.auth.getUser();
+      const email = userData?.user?.email;
+      if (!email) { showMsg(msg, 'Session expirée. Reconnectez-vous.', 'error'); return; }
+      // Vérification de l'ancien mot de passe avant toute modification
+      const { error: checkError } = await supabase.auth.signInWithPassword({ email, password: current });
+      if (checkError) { showMsg(msg, 'Mot de passe actuel incorrect.', 'error'); return; }
       const { error } = await supabase.auth.updateUser({ password: pw });
       if (error) { showMsg(msg, translateError(error), 'error'); return; }
-      e.currentTarget.reset();
+      form.reset();
       showMsg(msg, 'Mot de passe modifié.', 'success');
     });
   }

@@ -217,7 +217,8 @@ async function renderClient(container, id) {
 
   container.querySelector('#send-msg').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const fd = new FormData(e.currentTarget);
+    const form = e.currentTarget; // capturé avant l'attente : currentTarget devient nul après
+    const fd = new FormData(form);
     const feedback = container.querySelector('#client-msg');
     const { error: sendError } = await supabase.rpc('send_user_message', {
       p_user: id, p_title: String(fd.get('title')).trim(), p_body: String(fd.get('body')).trim(),
@@ -225,7 +226,7 @@ async function renderClient(container, id) {
     feedback.className = sendError ? 'alert alert-error' : 'alert alert-success';
     feedback.textContent = sendError ? translateError(sendError) : 'Message envoyé au client.';
     feedback.hidden = false;
-    if (!sendError) e.currentTarget.reset();
+    if (!sendError) form.reset();
   });
 
   const msg = container.querySelector('#client-msg');

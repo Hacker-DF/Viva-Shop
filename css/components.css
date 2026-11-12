@@ -336,3 +336,47 @@
 .gallery-dots { position: absolute; left: 0; right: 0; bottom: 10px; display: flex; justify-content: center; gap: 6px; pointer-events: none; }
 .gallery-dots span { width: 8px; height: 8px; border-radius: 50%; background: rgba(255, 255, 255, .6); box-shadow: 0 0 0 1px rgba(0, 0, 0, .15); }
 .gallery-dots span.on { background: #FFFFFF; }
+
+/* Bouton « J'aime » sur les cartes produit */
+.product-card-wrap { position: relative; }
+.like-btn {
+  position: absolute; top: 8px; right: 8px; z-index: 2;
+  width: 36px; height: 36px; border-radius: 50%; border: 0; cursor: pointer;
+  display: grid; place-items: center; color: var(--navy);
+  background: rgba(255, 255, 255, .94); box-shadow: 0 2px 8px rgba(0, 0, 0, .18);
+  transition: transform .15s ease;
+}
+.like-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; }
+.like-btn.on { color: #E0245E; }
+.like-btn.on svg { fill: #E0245E; stroke: #E0245E; }
+.like-btn:active { transform: scale(.88); }
+.like-btn:disabled { opacity: .6; cursor: default; }
+
+/* Visionneuse plein écran des photos */
+.gallery img { cursor: zoom-in; }
+.photo-viewer {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, .94); touch-action: pan-y;
+}
+.photo-viewer img { max-width: 100%; max-height: 100%; object-fit: contain; user-select: none; }
+.photo-viewer [hidden] { display: none !important; }
+.pv-close {
+  position: absolute; top: 12px; right: 12px; width: 44px; height: 44px; border-radius: 50%;
+  border: 0; background: rgba(255, 255, 255, .15); color: #fff; font-size: 28px; line-height: 1; cursor: pointer;
+}
+.pv-nav {
+  position: absolute; top: 50%; transform: translateY(-50%); width: 46px; height: 46px; border-radius: 50%;
+  border: 0; background: rgba(255, 255, 255, .15); color: #fff; font-size: 32px; line-height: 1; cursor: pointer;
+}
+.pv-prev { left: 10px; }
+.pv-next { right: 10px; }
+.pv-count {
+  position: absolute; bottom: 16px; left: 0; right: 0; margin: 0; text-align: center;
+  color: #fff; font-size: 14px; font-weight: 600;
+}
+
+.pv-download {
+  position: absolute; top: 12px; left: 12px; height: 44px; padding: 0 16px; border-radius: 22px;
+  border: 0; background: var(--electric); color: #fff; font-weight: 700; font-size: 14px; cursor: pointer;
+}

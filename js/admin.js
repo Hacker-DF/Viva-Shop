@@ -3,6 +3,7 @@
  * La vérification de rôle ici n'améliore que l'affichage ; l'écriture est refusée par Supabase (RLS)
  * si l'utilisateur n'a pas le rôle requis.
  */
+import { bindCategoryGuess } from './category-guess.js';
 import { escapeHtml, icon } from './ui.js';
 import { supabase } from './supabase.js';
 import { getSession, getRoleCodes, translateError } from './auth.js';
@@ -193,6 +194,7 @@ async function openForm(container, product, categories, say, onSaved) {
   const err = wrap.querySelector('#form-error');
   wrap.querySelector('[data-cancel]').addEventListener('click', () => { wrap.hidden = true; wrap.innerHTML = ''; });
   bindFileDrops(wrap);
+  bindCategoryGuess(wrap.querySelector('form'), categories);
   if (product) {
     if (product.has_colors !== false) renderColorManager(wrap, product.id, say);
     renderImageManager(wrap, product.id, say);

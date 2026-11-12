@@ -1,6 +1,7 @@
 /**
  * product.js — Fiche produit : tarifs dégressifs, réservation, favoris, code copiable.
  */
+import { openPhotoViewer } from './viewer.js';
 import { escapeHtml, icon } from './ui.js';
 import {
   getProductByCode, favoriteIdsAmong, setFavorite, listTiers, unitPriceFor,
@@ -68,6 +69,9 @@ export async function render(container) {
       dots.forEach((d, k) => d.classList.toggle('on', k === i));
     }, { passive: true });
   }
+  container.querySelectorAll('.gallery img').forEach((imgEl, i, all) => {
+    imgEl.addEventListener('click', () => openPhotoViewer([...all].map((x) => x.getAttribute('src')), i, p.code));
+  });
   const msg = container.querySelector('#product-msg');
   const show = (text, type) => { msg.className = `alert alert-${type}`; msg.textContent = text; msg.hidden = false; };
 

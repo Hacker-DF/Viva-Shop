@@ -87,6 +87,12 @@ import { STATUS_I18N } from './i18n-status.js';
 for (const lang of Object.keys(STATUS_I18N)) Object.assign(STRINGS[lang], STATUS_I18N[lang]);
 import { GUIDE_I18N } from './i18n-guide.js';
 for (const lang of Object.keys(GUIDE_I18N)) Object.assign(STRINGS[lang], GUIDE_I18N[lang]);
+import { ADMIN_I18N } from './i18n-admin.js';
+for (const lang of Object.keys(ADMIN_I18N)) Object.assign(STRINGS[lang], ADMIN_I18N[lang]);
+import { LIKE_I18N } from './i18n-like.js';
+for (const lang of Object.keys(LIKE_I18N)) Object.assign(STRINGS[lang], LIKE_I18N[lang]);
+import { VIEWER_I18N } from './i18n-viewer.js';
+for (const lang of Object.keys(VIEWER_I18N)) Object.assign(STRINGS[lang], VIEWER_I18N[lang]);
 
 const LANG_NAMES = { fr: 'Français', en: 'English' };
 const STORAGE_KEY = 'cct-lang';

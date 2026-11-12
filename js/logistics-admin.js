@@ -85,7 +85,7 @@ export async function render(container) {
 
   const [shipRes, colorRes, productRes, confirmedRes] = await Promise.all([
     supabase.from('shipments')
-      .select('id, tracking_number, status, color_name, color_photo_url, estimated_arrival, assigned_to, payment_declarations(order_number, amount, products(name, code)), profiles(first_name, last_name, username)')
+      .select('id, tracking_number, status, color_name, color_photo_url, estimated_arrival, assigned_to, declaration_id, payment_declarations(order_number, amount, products(name, code)), profiles!user_id(first_name, last_name, username)')
       .order('created_at', { ascending: false }).limit(100),
     supabase.from('product_colors').select('id, product_id, name, photo_url').order('name'),
     supabase.from('products').select('id, code, name, has_colors').eq('is_archived', false).order('name'),

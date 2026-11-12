@@ -116,7 +116,8 @@ export async function downloadProForma(decl, profile) {
   const JsPDF = await loadJsPdf();
   const doc = new JsPDF({ unit: 'mm', format: 'a4' });
   const logo = await fetchDataUrl('assets/logo-transparent.png');
-  const stampLogo = await fetchDataUrl('assets/logo-watermark.png');
+  const sealImg = await fetchDataUrl('assets/sceau-viva-shop.png');
+  const signatureImg = await fetchDataUrl('assets/signature-admin.png');
 
   let qr = null;
   if (decl.verify_token) {
@@ -243,47 +244,22 @@ export async function downloadProForma(decl, profile) {
   doc.text('Pour Viva Shop', 150, 208, { align: 'center' });
 
   const cx = 150;
-  const cy = 238;
+  const cy = 232;
   const r = 24;
   if (validated) {
-    doc.setDrawColor(...ELECTRIC);
-    doc.setLineWidth(0.9);
-    doc.circle(cx, cy, r, 'S');
-    doc.setLineWidth(0.4);
-    doc.circle(cx, cy, r - 2, 'S');
-    doc.addImage(stampLogo, 'PNG', cx - 15, cy - 15, 30, 30);
+    // Sceau officiel de l'administration
+    const sealW = 40;
+    const sealH = sealW * 0.968;
+    doc.addImage(sealImg, 'PNG', cx - sealW / 2, cy - sealH / 2, sealW, sealH);
 
-    doc.setTextColor(...ELECTRIC);
+    // Date de validation, puis signature de l'administration
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7);
-    doc.text('VIVA SHOP', cx, cy - 7, { align: 'center' });
-    doc.setFontSize(5.5);
-    doc.text('ADMINISTRATION', cx, cy - 3.5, { align: 'center' });
-    doc.text('VALIDÉ LE', cx, cy + 1, { align: 'center' });
     doc.setFontSize(8);
-    doc.text(dateText(validationDate), cx, cy + 5, { align: 'center' });
-
-    // Numéros dans des cercles, à droite du tampon
-    CONTACTS.forEach((phone, i) => {
-      const y = cy - 17 + i * 17;
-      const x = cx + 35;
-      doc.setDrawColor(...ELECTRIC);
-      doc.setLineWidth(0.5);
-      doc.circle(x, y, 8, 'S');
-      const local = phone.replace(/\D/g, '').replace(/^228/, '');
-      const pairs = local.replace(/(\d{2})(?=\d)/g, '$1 ').trim().split(' ');
-      const half = Math.ceil(pairs.length / 2);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(6);
-      doc.setTextColor(...ELECTRIC);
-      doc.text(pairs.slice(0, half).join(' '), x, y - 0.8, { align: 'center' });
-      doc.text(pairs.slice(half).join(' '), x, y + 2.8, { align: 'center' });
-    });
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(...MUTED);
-    doc.text(`Signé par l’administration Viva Shop le ${dateText(validationDate)}`, cx, cy + r + 8, { align: 'center' });
+    doc.setTextColor(...ELECTRIC);
+    doc.text(`Validé le ${dateText(validationDate)}`, cx, cy + sealH / 2 + 4, { align: 'center' });
+    const sigW = 30;
+    const sigH = sigW * 0.799;
+    doc.addImage(signatureImg, 'PNG', cx - sigW / 2, cy + sealH / 2 + 6, sigW, sigH);
   } else {
     doc.setDrawColor(...MUTED);
     doc.setLineWidth(0.3);

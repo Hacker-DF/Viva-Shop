@@ -7,17 +7,18 @@ import { supabase } from './supabase.js';
 import { getSession, getRoleCodes, translateError } from './auth.js';
 import { PAYMENT_STATUS, METHODS } from './payments.js';
 import { formatFcfa } from './products.js';
+import { t } from './i18n.js';
 
 const FINANCE_ROLES = ['administrateur_principal', 'agent_financier'];
 
 /** Actions proposées selon le statut. needsNote : une raison écrite est obligatoire. */
 const ACTIONS = [
-  { status: 'en_cours_verification', label: 'Commencer la vérification', cls: 'btn-ghost' },
-  { status: 'paiement_confirme', label: 'Confirmer le paiement', cls: 'btn-primary' },
-  { status: 'montant_incorrect', label: 'Montant incorrect', cls: 'btn-ghost', needsNote: true },
-  { status: 'transaction_introuvable', label: 'Transaction introuvable', cls: 'btn-ghost', needsNote: true },
-  { status: 'declaration_rejetee', label: 'Rejeter', cls: 'btn-ghost', needsNote: true },
-  { status: 'rembourse', label: 'Marquer remboursé', cls: 'btn-ghost', needsNote: true, onlyIfConfirmed: true },
+  { status: 'en_cours_verification', get label() { return t('pay.act.start'); }, cls: 'btn-ghost' },
+  { status: 'paiement_confirme', get label() { return t('pay.act.confirm'); }, cls: 'btn-primary' },
+  { status: 'montant_incorrect', get label() { return t('pay.act.amount_wrong'); }, cls: 'btn-ghost', needsNote: true },
+  { status: 'transaction_introuvable', get label() { return t('pay.act.not_found'); }, cls: 'btn-ghost', needsNote: true },
+  { status: 'declaration_rejetee', get label() { return t('pay.act.reject'); }, cls: 'btn-ghost', needsNote: true },
+  { status: 'rembourse', get label() { return t('pay.act.refund'); }, cls: 'btn-ghost', needsNote: true, onlyIfConfirmed: true },
 ];
 
 /** Message à afficher après le rechargement de la page. */
@@ -29,12 +30,12 @@ export async function render(container) {
 
   const session = await getSession();
   if (!session) {
-    container.innerHTML = '<div class="alert alert-warn">Connectez-vous pour accéder à cette page.</div>';
+    container.innerHTML = `<div class="alert alert-warn">${t('common.login_required')}</div>`;
     return;
   }
   const codes = await getRoleCodes();
   if (!codes.some((c) => FINANCE_ROLES.includes(c))) {
-    container.innerHTML = '<div class="alert alert-error">Accès réservé à l’équipe financière.</div>';
+    container.innerHTML = `<div class="alert alert-error">${t('pay.restricted')}</div>`;
     return;
   }
 
@@ -46,12 +47,12 @@ export async function render(container) {
 
   container.innerHTML = `
     <div class="admin-toolbar">
-      <h1>Vérification des paiements</h1>
+      <h1>${t('pay.title')}</h1>
     </div>
-    <p class="alert alert-info">Vérifiez chaque transaction auprès du compte marchand avant de confirmer. Une capture d’écran ne suffit pas.</p>
+    <p class="alert alert-info">${t('pay.intro')}</p>
     <div id="pay-msg" class="alert" role="status" hidden></div>
     <ul class="admin-list" id="pay-list">
-      ${data.map(card).join('') || '<li class="empty">Aucune déclaration pour le moment. Les déclarations apparaissent ici dès qu’un client déclare un paiement pendant une collecte ouverte.</li>'}
+      ${data.map(card).join('') || `<li class="empty">${t('pay.empty')}</li>`}
     </ul>`;
 
   const msg = container.querySelector('#pay-msg');
@@ -72,16 +73,16 @@ export async function render(container) {
 
     let reason = null;
     if (btn.dataset.needsNote === '1') {
-      reason = window.prompt('Indiquez la raison (obligatoire) :');
+      reason = window.prompt(t('pay.reason_prompt'));
       if (!reason || !reason.trim()) return;
     }
 
     let paymentDate = null;
     if (btn.dataset.status === 'paiement_confirme') {
-      const typed = window.prompt('Date à laquelle le paiement a été reçu (JJ/MM/AAAA) :', new Date().toLocaleDateString('fr-FR'));
+      const typed = window.prompt(t('pay.date_prompt'), new Date().toLocaleDateString('fr-FR'));
       if (!typed) return;
       const m = typed.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-      if (!m) { say('Format attendu : JJ/MM/AAAA.', 'error'); return; }
+      if (!m) { say(t('pay.date_format'), 'error'); return; }
       paymentDate = `${m[3]}-${m[2]}-${m[1]}`;
     }
 
@@ -90,7 +91,7 @@ export async function render(container) {
     });
     if (rpcError) { say(translateError(rpcError), 'error'); return; }
 
-    pending = { text: 'Statut mis à jour.', type: 'success' };
+    pending = { text: t('pay.updated'), type: 'success' };
     render(container);
   });
 }
@@ -107,12 +108,12 @@ function card(d) {
       <div class="admin-row-main">
         <strong>${escapeHtml(d.order_number)} · ${escapeHtml(d.products?.name || '')}</strong>
         <span class="product-code">${escapeHtml(client)}</span>
-        <span class="product-code">Payeur : ${escapeHtml(d.payer_name)}${d.payer_phone ? ' · ' + escapeHtml(d.payer_phone) : ''}</span>
+        <span class="product-code">${t('pay.payer')} : ${escapeHtml(d.payer_name)}${d.payer_phone ? ' · ' + escapeHtml(d.payer_phone) : ''}</span>
         <span class="product-code">${escapeHtml(formatFcfa(d.amount))} · ${escapeHtml(METHODS[d.payment_method]?.label || '')}</span>
         <span class="product-code">REF : ${escapeHtml(d.ref_code || '-')} · TXN : ${escapeHtml(d.txn_id || '-')}</span>
         <span class="status-badge" style="--c: ${st.color}">${escapeHtml(st.label)}</span>
-        ${d.verification_note ? `<span class="product-code">Note : ${escapeHtml(d.verification_note)}</span>` : ''}
+        ${d.verification_note ? `<span class="product-code">${t('pay.note')} : ${escapeHtml(d.verification_note)}</span>` : ''}
       </div>
-      <div class="admin-actions wrap">${d.proof_path ? `<button class="btn btn-ghost btn-small" type="button" data-proof="${escapeHtml(d.proof_path)}">Voir la capture</button>` : '<span class="product-code">Pas de capture</span>'}${actions}</div>
+      <div class="admin-actions wrap">${d.proof_path ? `<button class="btn btn-ghost btn-small" type="button" data-proof="${escapeHtml(d.proof_path)}">${t('pay.see_proof')}</button>` : `<span class="product-code">${t('pay.no_proof')}</span>`}${actions}</div>
     </li>`;
 }

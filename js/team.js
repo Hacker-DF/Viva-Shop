@@ -6,6 +6,7 @@
 import { escapeHtml } from './ui.js';
 import { supabase } from './supabase.js';
 import { translateError } from './auth.js';
+import { t } from './i18n.js';
 
 /** Message à afficher après le rechargement de la page. */
 let pending = null;
@@ -30,25 +31,25 @@ export async function render(container) {
 
   container.innerHTML = `
     <div class="admin-toolbar">
-      <h1>Équipe</h1>
-      <a class="btn btn-ghost btn-small" href="#/admin">Produits</a>
+      <h1>${t('team.title')}</h1>
+      <a class="btn btn-ghost btn-small" href="#/admin">${t('admin.products')}</a>
     </div>
     <div id="team-msg" class="alert" role="status" hidden></div>
 
     <form id="grant" class="card admin-form" novalidate>
-      <h2>Attribuer un rôle</h2>
-      <label>Nom d’utilisateur
+      <h2>${t('team.grant_title')}</h2>
+      <label>${t('common.username')}
         <input name="username" list="usernames" required autocomplete="off" maxlength="20">
       </label>
       <datalist id="usernames">
         ${profiles.map((p) => `<option value="${escapeHtml(p.username)}"></option>`).join('')}
       </datalist>
-      <label>Rôle
+      <label>${t('team.role')}
         <select name="role">
           ${roles.map((r) => `<option value="${escapeHtml(r.code)}">${escapeHtml(r.label)}</option>`).join('')}
         </select>
       </label>
-      <button class="btn btn-primary btn-block" type="submit">Attribuer</button>
+      <button class="btn btn-primary btn-block" type="submit">${t('team.grant')}</button>
     </form>
 
     <ul class="admin-list">
@@ -63,8 +64,8 @@ export async function render(container) {
               <span class="status-badge" style="--c: var(--electric)">
                 ${escapeHtml(labelOf[code] || code)}
                 <button type="button" class="chip-x" data-username="${escapeHtml(p.username)}"
-                        data-role="${escapeHtml(code)}" aria-label="Retirer ce rôle">×</button>
-              </span>`).join('') || '<span class="product-code">Compte client</span>'}
+                        data-role="${escapeHtml(code)}" aria-label="${t('team.remove_role')}">×</button>
+              </span>`).join('') || `<span class="product-code">${t('team.client_account')}</span>`}
           </div>
         </li>`).join('')}
     </ul>`;
@@ -87,13 +88,13 @@ export async function render(container) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const username = String(fd.get('username')).trim().toLowerCase();
-    if (!/^[a-z0-9_]{3,20}$/.test(username)) { say('Nom d’utilisateur invalide.', 'error'); return; }
-    change(username, String(fd.get('role')), true, `Rôle attribué à @${username}.`);
+    if (!/^[a-z0-9_]{3,20}$/.test(username)) { say(t('team.invalid_username'), 'error'); return; }
+    change(username, String(fd.get('role')), true, `${t('team.granted')} @${username}.`);
   });
 
   container.querySelector('ul').addEventListener('click', (e) => {
     const btn = e.target.closest('button.chip-x');
     if (!btn) return;
-    change(btn.dataset.username, btn.dataset.role, false, `Rôle retiré à @${btn.dataset.username}.`);
+    change(btn.dataset.username, btn.dataset.role, false, `${t('team.revoked')} @${btn.dataset.username}.`);
   });
 }

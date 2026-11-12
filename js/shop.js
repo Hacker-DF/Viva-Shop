@@ -4,6 +4,7 @@
 import { escapeHtml, icon } from './ui.js';
 import { t } from './i18n.js';
 import { listCategories, listProducts, listProductImages, allImages, STATUS_LABELS, formatFcfa } from './products.js';
+import './likes.js';
 
 const PAGE_SIZE = 24;
 
@@ -18,15 +19,18 @@ export function productCardHtml(p, extra = []) {
       ? `<img src="${escapeHtml(list[0])}" alt="${escapeHtml(p.name)}" loading="lazy">`
       : `<div class="product-placeholder">${icon('package')}</div>`;
   return `
-    <a class="product-card" href="#/produit/${encodeURIComponent(p.code)}">
-      <div class="product-img">${image}</div>
-      <div class="product-body">
-        <span class="status-badge" style="--c: ${status.color}">${escapeHtml(t('pstatus.' + p.status))}</span>
-        <h3>${escapeHtml(p.name)}</h3>
-        <p class="product-code">${escapeHtml(t('shop.code'))} ${escapeHtml(p.code)}</p>
-        <p class="product-price">${escapeHtml(formatFcfa(price))}</p>
-      </div>
-    </a>`;
+    <div class="product-card-wrap">
+      <a class="product-card" href="#/produit/${encodeURIComponent(p.code)}">
+        <div class="product-img">${image}</div>
+        <div class="product-body">
+          <span class="status-badge" style="--c: ${status.color}">${escapeHtml(t('pstatus.' + p.status))}</span>
+          <h3>${escapeHtml(p.name)}</h3>
+          <p class="product-code">${escapeHtml(t('shop.code'))} ${escapeHtml(p.code)}</p>
+          <p class="product-price">${escapeHtml(formatFcfa(price))}</p>
+        </div>
+      </a>
+      <button class="like-btn" type="button" data-like="${p.id}" aria-pressed="false" aria-label="${escapeHtml(t('like.add'))}">${icon('heart')}</button>
+    </div>`;
 }
 
 export async function render(container) {
