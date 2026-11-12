@@ -59,14 +59,15 @@ export async function render(container) {
         ${payments.map((d) => {
           const st = PAYMENT_STATUS[d.status] || PAYMENT_STATUS.en_attente_verification;
           const owner = d.profiles || profile;
-          const mine = d.user_id === session.user.id;
+          // Vue équipe : dès qu'on voit les commandes d'autres clients, chaque ligne affiche le client
+          const staffView = payments.some((x) => x.user_id !== session.user.id);
           return `
           <li class="admin-row">
             <div class="admin-row-main">
               <strong>${escapeHtml(d.products?.name || t('orders.product'))}</strong>
               <span class="product-code">${escapeHtml(d.order_number)} · ${escapeHtml(d.products?.code || '')} · ${escapeHtml(formatFcfa(d.amount))} · ${escapeHtml(METHODS[d.payment_method]?.label || '')}</span>
               <span class="status-badge" style="--c: ${st.color}">${escapeHtml(st.label)}</span>
-              ${mine ? '' : `<span class="author-line"><strong>${escapeHtml(t('author.label'))} :</strong> ${escapeHtml(ownerName(owner))}</span>`}
+              ${staffView ? `<span class="author-line"><strong>${escapeHtml(t('author.label'))} :</strong> ${escapeHtml(ownerName(d.profiles))}</span>` : ''}
               ${d.whatsapp_sent_at ? `<span class="product-code">${escapeHtml(t('pay.sent.badge'))}</span>` : ''}
             </div>
             <div class="admin-actions wrap">
