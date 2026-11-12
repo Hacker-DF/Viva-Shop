@@ -52,7 +52,8 @@ export async function render(container) {
     </div>
     <p class="alert alert-info">${t('pay.intro')}</p>
     <div id="pay-msg" class="alert" role="status" hidden></div>
-    <div class="admin-toolbar"><button id="hide-selected" class="btn btn-ghost btn-small" type="button">${t('del.hide_selected')}</button></div>
+    <div class="admin-toolbar"><button id="hide-selected" class="btn btn-ghost btn-small" type="button">${t('del.hide_selected')}</button>
+      ${data.some((d) => d.status === 'declaration_rejetee') ? '' : `<span class="product-code">${t('del.no_rejected')}</span>`}</div>
     <ul class="admin-list" id="pay-list">
       ${data.map(selectable).join('') || `<li class="empty">${t('pay.empty')}</li>`}
     </ul>`;

@@ -40,23 +40,65 @@ export async function render(container) {
   if (error) throw error;
 
   container.innerHTML = `
-    <div class="admin-toolbar"><h1>${t('ann.title')}</h1><a class="btn btn-ghost btn-small" href="#/admin">${t('admin.products')}</a></div>
+    <section class="ann-hero">
+      <div>
+        <p class="ann-kicker">${t('ann.title')}</p>
+        <h1>${t('ann.hero')}</h1>
+        <p>${t('ann.hero_sub')}</p>
+      </div>
+      <a class="btn btn-ghost btn-small ann-back" href="#/admin">${t('ann.back')}</a>
+    </section>
     <div id="ann-msg" class="alert" role="status" hidden></div>
-    <form id="new-ann" class="card admin-form" novalidate>
-      <h2>${t('ann.new')}</h2>
-      <label>${t('ann.title_label')}<input name="title" maxlength="120" required></label>
-      <label>${t('ann.body_label')}<textarea name="body" rows="3" maxlength="1000"></textarea></label>
-      <label>${t('ann.ends_label')}<input name="ends" type="date"></label>
-      <button class="btn btn-primary btn-block" type="submit">${t('ann.publish')}</button>
-    </form>
+    <div class="ann-layout">
+      <form id="new-ann" class="ann-card ann-form" novalidate>
+        <h2>${t('ann.new')}</h2>
+        <p class="hint">${t('ann.tip')}</p>
+        <label class="ann-field">
+          <span>${t('ann.title_label')} <small id="ann-count-title">0/120</small></span>
+          <input name="title" maxlength="120" required placeholder="${t('ann.ph_title')}">
+        </label>
+        <label class="ann-field">
+          <span>${t('ann.body_label')} <small id="ann-count-body">0/1000</small></span>
+          <textarea name="body" rows="4" maxlength="1000" placeholder="${t('ann.ph_body')}"></textarea>
+        </label>
+        <label class="ann-field">
+          <span>${t('ann.ends_label')}</span>
+          <input name="ends" type="date">
+        </label>
+        <div class="ann-actions">
+          <button class="btn btn-ghost" type="reset">${t('ann.reset')}</button>
+          <button class="btn btn-primary" type="submit">${t('ann.publish')}</button>
+        </div>
+      </form>
+      <aside class="ann-card ann-side">
+        <p class="ann-kicker">${t('ann.preview')}</p>
+        <div class="ann-preview">
+          <strong id="pv-title">${t('ann.ph_title')}</strong>
+          <p id="pv-body">${t('ann.ph_body')}</p>
+        </div>
+      </aside>
+    </div>
+    <h2 class="ann-list-title">${t('ann.list_title')}</h2>
     <ul class="admin-list" id="ann-list">${data.map(annHtml).join('') || `<li class="empty">${t('ann.empty')}</li>`}</ul>`;
+
+  const form = container.querySelector('#new-ann');
+  const updatePreview = () => {
+    const title = form.querySelector('[name="title"]').value;
+    const body = form.querySelector('[name="body"]').value;
+    container.querySelector('#pv-title').textContent = title.trim() || t('ann.ph_title');
+    container.querySelector('#pv-body').textContent = body.trim() || t('ann.ph_body');
+    container.querySelector('#ann-count-title').textContent = `${title.length}/120`;
+    container.querySelector('#ann-count-body').textContent = `${body.length}/1000`;
+  };
+  form.addEventListener('input', updatePreview);
+  form.addEventListener('reset', () => setTimeout(updatePreview, 0));
 
   const msg = container.querySelector('#ann-msg');
   const say = (text, type) => { msg.className = `alert alert-${type}`; msg.textContent = text; msg.hidden = false; };
   if (note) say(note.text, note.type);
   const done = (text) => { pending = { text, type: 'success' }; render(container); };
 
-  container.querySelector('#new-ann').addEventListener('submit', async (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const title = String(fd.get('title')).trim();

@@ -115,6 +115,8 @@ import { DEL_I18N } from './i18n-del.js';
 for (const lang of Object.keys(DEL_I18N)) Object.assign(STRINGS[lang], DEL_I18N[lang]);
 import { INVITE_I18N } from './i18n-invite.js';
 for (const lang of Object.keys(INVITE_I18N)) Object.assign(STRINGS[lang], INVITE_I18N[lang]);
+import { ANN_I18N } from './i18n-ann.js';
+for (const lang of Object.keys(ANN_I18N)) Object.assign(STRINGS[lang], ANN_I18N[lang]);
 import { REQ_I18N } from './i18n-req.js';
 for (const lang of Object.keys(REQ_I18N)) Object.assign(STRINGS[lang], REQ_I18N[lang]);
 import { ADM_I18N } from './i18n-adm.js';

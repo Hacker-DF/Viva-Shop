@@ -54,6 +54,7 @@ export async function render(container) {
     <h1>${escapeHtml(t('pay.title'))}</h1>
     <p class="hint">${escapeHtml(t('pay.note'))}</p>
     <div id="pay-msg" class="alert" role="status" hidden></div>
+    ${payments.some((x) => x.user_id !== session.user.id) ? `<div class="admin-toolbar"><button id="hide-selected-pay" class="btn btn-ghost btn-small" type="button">${escapeHtml(t('del.hide_selected'))}</button></div>` : ''}
     ${payments.length ? `
       <ul class="admin-list" id="payments">
         ${payments.map((d) => {
@@ -63,6 +64,7 @@ export async function render(container) {
           const staffView = payments.some((x) => x.user_id !== session.user.id);
           return `
           <li class="admin-row">
+            ${(d.status === 'declaration_rejetee' && payments.some((x) => x.user_id !== session.user.id)) ? `<label class="check-line sel"><input type="checkbox" data-hide-id="${d.id}"> ${escapeHtml(t('del.select'))}</label>` : ''}
             <div class="admin-row-main">
               <strong>${escapeHtml(d.products?.name || t('orders.product'))}</strong>
               <span class="product-code">${escapeHtml(d.order_number)} · ${escapeHtml(d.products?.code || '')} · ${escapeHtml(formatFcfa(d.amount))} · ${escapeHtml(METHODS[d.payment_method]?.label || '')}</span>
@@ -128,6 +130,16 @@ export async function render(container) {
     if (hideError) { btn.disabled = false; say(translateError(hideError), 'error'); return; }
     btn.closest('li').remove();
     say(t('res.hidden'), 'success');
+  });
+
+  container.querySelector('#hide-selected-pay')?.addEventListener('click', async () => {
+    const boxes = [...container.querySelectorAll('input[data-hide-id]:checked')];
+    if (!boxes.length) return say(t('del.none'), 'error');
+    if (!window.confirm(t('del.hide_confirm'))) return;
+    const { error: hideError } = await supabase.rpc('hide_rejected_payments', { p_ids: boxes.map((b) => b.dataset.hideId) });
+    if (hideError) return say(translateError(hideError), 'error');
+    boxes.forEach((b) => b.closest('li')?.remove());
+    say(t('del.deleted'), 'success');
   });
 
   container.querySelector('#delete-selected-res')?.addEventListener('click', async () => {
