@@ -8,7 +8,7 @@
  *
  * ⚠️ Incrémenter CACHE_VERSION à chaque mise à jour des fichiers statiques.
  */
-const CACHE_VERSION = 'v82';
+const CACHE_VERSION = 'v83';
 const CACHE_NAME = `cct-static-${CACHE_VERSION}`;
 
 const STATIC_ASSETS = [
