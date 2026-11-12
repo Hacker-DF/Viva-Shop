@@ -5,6 +5,8 @@
  * La clé "service_role" ne doit JAMAIS apparaître dans le frontend.
  */
 export const APP_CONFIG = {
+  // Clé publique VAPID (notifications) : générée une fois, à remplacer avant mise en ligne
+  push: { vapidPublicKey: 'REMPLACER_PAR_LA_CLE_PUBLIQUE_VAPID' },
   name: 'Viva Shop', // Nom officiel : à confirmer, un seul endroit à modifier
   slogan: 'Votre passerelle entre la Chine et le Togo',
   defaultLang: 'fr',

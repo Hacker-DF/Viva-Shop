@@ -387,3 +387,35 @@
 
 /* Auteur d'une commande, mis en évidence dans l'administration */
 .author-line { display: block; margin: 2px 0; font-size: .95rem; color: var(--navy); }
+
+/* En-tête mobile : le sélecteur de langue ne chevauche plus le nom */
+.app-header .brand { flex: 1 1 0; min-width: 0; overflow: hidden; }
+.app-header .brand-text { min-width: 0; overflow: hidden; }
+.app-header .brand-text strong { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.app-header > *:not(.brand) { flex-shrink: 0; }
+.lang-select { flex: 0 0 auto; }
+@media (max-width: 420px) {
+  .lang-select { max-width: 74px; padding: 6px 4px; }
+  .app-header .brand-logo { width: 34px; height: 34px; }
+}
+
+/* Œil pour afficher le mot de passe */
+.pw-wrap { position: relative; display: block; }
+.pw-wrap > input { padding-right: 46px; }
+.pw-eye {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  width: 36px; height: 36px; border: 0; border-radius: 50%; background: transparent;
+  color: var(--muted, #5b6573); display: grid; place-items: center; cursor: pointer;
+}
+.pw-eye:focus-visible { outline: 2px solid var(--electric); }
+.pw-eye[aria-pressed="true"] { color: var(--electric); }
+
+/* Invitation à installer l'application */
+.install-banner {
+  position: fixed; left: 12px; right: 12px; bottom: 84px; z-index: 900;
+  background: #fff; color: var(--navy, #0B2545); border-radius: 16px; padding: 14px 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .25); border-top: 4px solid var(--gold, #F2B705);
+}
+.install-banner[hidden] { display: none; }
+.install-banner p { margin: 6px 0 10px; font-size: .92rem; }
+.install-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }

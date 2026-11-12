@@ -14,9 +14,15 @@ import { t } from './i18n.js';
 const waLink = (phone, text) => `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`;
 
 /** Message pré-rempli selon le format du cahier des charges. */
-function whatsappText(d) {
+/** Nom affiché d'un client : « Prénom Nom (@identifiant) ». */
+function ownerName(o) {
+  return o ? `${o.first_name || ''} ${o.last_name || ''} (@${o.username || ''})` : t('author.missing');
+}
+
+function whatsappText(d, owner) {
   return [
     'Bonjour, je vous transmets mon document concernant ma commande sur Viva Shop.',
+    `Client : ${ownerName(owner)}.`,
     `Numéro de commande : ${d.order_number}.`,
     `Code produit : ${d.products?.code || ''}.`,
     `Montant déclaré : ${formatFcfa(d.amount)}.`,
@@ -25,7 +31,9 @@ function whatsappText(d) {
 }
 
 export async function render(container) {
-  if (!(await getSession())) {
+  window.__ordersView = container;
+  const session = await getSession();
+  if (!session) {
     container.innerHTML = `
       <section class="card placeholder">
         <div class="placeholder-icon">${icon('package')}</div>
@@ -50,18 +58,21 @@ export async function render(container) {
       <ul class="admin-list" id="payments">
         ${payments.map((d) => {
           const st = PAYMENT_STATUS[d.status] || PAYMENT_STATUS.en_attente_verification;
+          const owner = d.profiles || profile;
+          const mine = d.user_id === session.user.id;
           return `
           <li class="admin-row">
             <div class="admin-row-main">
               <strong>${escapeHtml(d.products?.name || t('orders.product'))}</strong>
               <span class="product-code">${escapeHtml(d.order_number)} · ${escapeHtml(d.products?.code || '')} · ${escapeHtml(formatFcfa(d.amount))} · ${escapeHtml(METHODS[d.payment_method]?.label || '')}</span>
               <span class="status-badge" style="--c: ${st.color}">${escapeHtml(st.label)}</span>
+              ${mine ? '' : `<span class="author-line"><strong>${escapeHtml(t('author.label'))} :</strong> ${escapeHtml(ownerName(owner))}</span>`}
               ${d.whatsapp_sent_at ? `<span class="product-code">${escapeHtml(t('pay.sent.badge'))}</span>` : ''}
             </div>
             <div class="admin-actions wrap">
               <button class="btn btn-ghost btn-small" type="button" data-action="proforma" data-id="${d.id}">${escapeHtml(t('pay.proforma'))}</button>
               ${APP_CONFIG.whatsapp.assistants.map((a) => `
-                <a class="btn btn-primary btn-small" href="${waLink(a.phone, whatsappText(d))}" target="_blank" rel="noopener">${escapeHtml(a.name)} (WhatsApp)</a>`).join('')}
+                <a class="btn btn-primary btn-small" href="${waLink(a.phone, whatsappText(d, owner))}" target="_blank" rel="noopener">${escapeHtml(a.name)} (WhatsApp)</a>`).join('')}
               ${d.whatsapp_sent_at ? '' : `<button class="btn btn-ghost btn-small" type="button" data-action="sent" data-id="${d.id}">${escapeHtml(t('pay.sent'))}</button>`}
             </div>
           </li>`;
@@ -111,7 +122,7 @@ export async function render(container) {
     try {
       if (btn.dataset.action === 'proforma') {
         say(t('orders.prep'), 'info');
-        await downloadProForma(decl, profile);
+        await downloadProForma(decl, decl.profiles || profile);
         say(t('orders.proforma_done'), 'success');
       } else if (btn.dataset.action === 'sent') {
         await markWhatsappSent(decl.id);
@@ -120,5 +131,20 @@ export async function render(container) {
     } catch (err) {
       say(translateError(err), 'error');
     }
+  });
+}
+
+// Rafraîchissement : les changements de statut apparaissent sans recharger la page
+window.__ordersView = window.__ordersView || null;
+if (!window.__ordersTimer) {
+  window.__ordersTimer = setInterval(() => {
+    const view = window.__ordersView;
+    if (!view || !view.isConnected || document.visibilityState !== 'visible') return;
+    if (!location.hash.startsWith('#/commandes')) return;
+    render(view);
+  }, 60000);
+  document.addEventListener('visibilitychange', () => {
+    const view = window.__ordersView;
+    if (document.visibilityState === 'visible' && view && view.isConnected && location.hash.startsWith('#/commandes')) render(view);
   });
 }

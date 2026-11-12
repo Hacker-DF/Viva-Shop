@@ -76,7 +76,7 @@ export async function createDeclaration(d) {
 /** Déclarations de l'utilisateur connecté, les plus récentes d'abord. */
 export async function listMyDeclarations() {
   const { data, error } = await supabase.from('payment_declarations')
-    .select('id, order_number, quantity, variant, amount, payment_method, ref_code, txn_id, status, verified_at, payment_date, verify_token, whatsapp_sent_at, created_at, products(code, name)')
+    .select('id, user_id, order_number, quantity, variant, amount, payment_method, ref_code, txn_id, status, verified_at, payment_date, verify_token, whatsapp_sent_at, created_at, products(code, name), profiles(first_name, last_name, username, phone, city)')
     .order('created_at', { ascending: false });
   if (error) throw error;
   return data;

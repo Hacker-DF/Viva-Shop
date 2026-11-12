@@ -14,6 +14,7 @@ import { fieldHtml } from './auth-pages.js';
 import { supabase } from './supabase.js';
 import { renderAddresses } from './addresses.js';
 import { t } from './i18n.js';
+import { pushSupported, isSubscribed, enablePush, disablePush } from './push.js';
 
 const PASSWORD_RE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9]).{8,}$/;
 
@@ -22,6 +23,7 @@ const SECTIONS = {
   'identifiants': { get title() { return t('pf.sec.id'); } },
   'photo': { get title() { return t('pf.sec.photo'); } },
   'adresses': { get title() { return t('pf.sec.addresses'); } },
+  'notifications': { get title() { return t('push.title'); } },
   'mot-de-passe': { get title() { return t('pf.sec.password'); } },
 };
 
@@ -94,6 +96,7 @@ function renderMenu(container, { profile, roles, codes, email }) {
     <nav class="menu-group">
       ${row('#/compte/infos', 'user', t('pf.sec.infos'), t('pf.row.info'))}
       ${row('#/compte/identifiants', 'lock', t('pf.sec.id'), `@${profile.username}`)}
+      ${row('#/compte/notifications', 'bell', t('push.title'), t('push.sub'))}
       ${row('#/compte/photo', 'user', t('pf.sec.photo'), t('pf.row.photo'))}
     </nav>
 
@@ -173,11 +176,27 @@ async function renderSection(container, key, view) {
     const masked = maskEmail(view.email);
     container.innerHTML = `${head}
       <section class="card">
-        <div class="field-line"><span>${t('common.username')}</span><strong>@${escapeHtml(profile.username)}</strong></div>
+        <h2>${t('common.username')}</h2>
+        <p class="field-line"><strong>@${escapeHtml(profile.username)}</strong></p>
+        <form id="username-form" novalidate>
+          <label>${t('common.username')}<input name="username" value="${escapeHtml(profile.username)}" required minlength="3" maxlength="20" autocomplete="username"></label>
+          <p class="hint">${t('id.username_rule')}</p>
+          <button class="btn btn-primary btn-block" type="submit">${t('id.save_username')}</button>
+        </form>
+        <p id="username-msg" class="alert" role="status" hidden></p>
+      </section>
+      <section class="card">
+        <h2>${t('auth.email')}</h2>
         <div class="field-line"><span>${t('auth.email')}</span><strong id="mask-email">${escapeHtml(masked)}</strong></div>
         <button id="reveal" class="btn btn-ghost btn-small" type="button" data-shown="0">${t('pf.show')}</button>
-        <p class="hint">${t('pf.id.hint')}</p>
+        <form id="email-form" novalidate>
+          <label>${t('id.new_email')}<input name="email" type="email" required autocomplete="email"></label>
+          <p class="hint">${t('id.email_hint')}</p>
+          <button class="btn btn-ghost btn-block" type="submit">${t('id.save_email')}</button>
+        </form>
+        <p id="email-msg" class="alert" role="status" hidden></p>
       </section>`;
+
     container.querySelector('#reveal').addEventListener('click', (e) => {
       const btn = e.currentTarget;
       const shown = btn.dataset.shown === '1';
@@ -185,6 +204,68 @@ async function renderSection(container, key, view) {
       btn.textContent = shown ? t('pf.show') : t('pf.hide');
       container.querySelector('#mask-email').textContent = shown ? maskEmail(view.email) : view.email;
     });
+
+    container.querySelector('#username-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.currentTarget;
+      const msg = container.querySelector('#username-msg');
+      const username = String(new FormData(form).get('username') || '').trim().toLowerCase();
+      if (!/^[a-z0-9_]{3,20}$/.test(username)) return showMsg(msg, t('id.username_rule'), 'error');
+      if (username === profile.username) return showMsg(msg, t('id.same'), 'error');
+      const session = await getSession();
+      const { error } = await supabase.from('profiles').update({ username }).eq('id', session.user.id);
+      if (error) return showMsg(msg, error.code === '23505' ? t('id.taken') : translateError(error), 'error');
+      showMsg(msg, t('id.username_saved'), 'success');
+      setTimeout(() => window.location.reload(), 900);
+    });
+
+    container.querySelector('#email-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.currentTarget;
+      const msg = container.querySelector('#email-msg');
+      const email = String(new FormData(form).get('email') || '').trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showMsg(msg, t('id.email_invalid'), 'error');
+      const { error } = await supabase.auth.updateUser({ email });
+      if (error) return showMsg(msg, translateError(error), 'error');
+      form.reset();
+      showMsg(msg, t('id.email_sent'), 'success');
+    });
+    return;
+  }
+
+  if (key === 'notifications') {
+    container.innerHTML = `${head}
+      <section class="card">
+        <p class="hint">${t('push.hint')}</p>
+        <p id="push-state" class="field-line"></p>
+        <button id="push-toggle" class="btn btn-primary btn-block" type="button" hidden></button>
+        <p id="push-msg" class="alert" role="status" hidden></p>
+      </section>`;
+    const btn = container.querySelector('#push-toggle');
+    const state = container.querySelector('#push-state');
+    const refresh = async () => {
+      if (!pushSupported()) { state.textContent = t('push.unsupported'); return; }
+      const on = await isSubscribed();
+      state.innerHTML = `<span>${t('push.state')}</span><strong>${on ? t('push.on') : t('push.off')}</strong>`;
+      btn.hidden = false;
+      btn.textContent = on ? t('push.disable') : t('push.enable');
+      btn.dataset.on = on ? '1' : '0';
+    };
+    btn.addEventListener('click', async () => {
+      const msg = container.querySelector('#push-msg');
+      btn.disabled = true;
+      try {
+        if (btn.dataset.on === '1') await disablePush();
+        else await enablePush();
+        showMsg(msg, t('push.saved'), 'success');
+      } catch (err) {
+        showMsg(msg, err.message || translateError(err), 'error');
+      } finally {
+        btn.disabled = false;
+        await refresh();
+      }
+    });
+    await refresh();
     return;
   }
 

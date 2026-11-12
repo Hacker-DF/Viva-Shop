@@ -8,7 +8,7 @@
  *
  * ⚠️ Incrémenter CACHE_VERSION à chaque mise à jour des fichiers statiques.
  */
-const CACHE_VERSION = 'v78';
+const CACHE_VERSION = 'v81';
 const CACHE_NAME = `cct-static-${CACHE_VERSION}`;
 
 const STATIC_ASSETS = [
@@ -56,6 +56,12 @@ const STATIC_ASSETS = [
   'js/i18n-db.js',
   'js/i18n-home.js',
   'js/i18n-author.js',
+  'js/install.js',
+  'js/i18n-install.js',
+  'js/i18n-ops.js',
+  'js/journal.js',
+  'js/push.js',
+  'js/i18n-legal.js',
   'js/i18n-viewer.js',
   'js/products.js',
   'js/shop.js',
@@ -123,17 +129,37 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Ressources statiques : cache d'abord, puis réseau (et mise en cache)
+  // Application : réseau d'abord pour recevoir les mises à jour, cache en secours hors connexion
   event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached;
-      return fetch(request).then((response) => {
-        if (response.ok) {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-        }
-        return response;
-      });
-    })
+    fetch(request).then((response) => {
+      if (response.ok) {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+      }
+      return response;
+    }).catch(() => caches.match(request))
   );
+});
+
+// ---------- Notifications sur le téléphone (Web Push) ----------
+self.addEventListener('push', (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch { data = { body: event.data ? event.data.text() : '' }; }
+  event.waitUntil(self.registration.showNotification(data.title || 'Viva Shop', {
+    body: data.body || '',
+    icon: 'assets/icons/icon-192.png',
+    badge: 'assets/icons/icon-192.png',
+    data: { link: data.link || '#/notifications' },
+  }));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = self.registration.scope + 'index.html' + (event.notification.data?.link || '');
+  event.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+    for (const client of list) {
+      if ('focus' in client) { client.navigate?.(target); return client.focus(); }
+    }
+    return clients.openWindow(target);
+  }));
 });

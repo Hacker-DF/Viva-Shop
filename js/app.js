@@ -10,6 +10,8 @@ import { t, setLang, getLang, onLangChange, LANGUAGES } from './i18n.js';
 import { initTheme, toggleTheme, currentTheme } from './theme.js';
 import { mountFloatingMenu } from './floating.js';
 import { startBell } from './notifications.js';
+import './password-eye.js';
+import { initInstall } from './install.js';
 import { startGalleryCycle } from './gallery.js';
 
 const outlet = document.getElementById('app');
@@ -94,6 +96,7 @@ function boot() {
   document.documentElement.lang = getLang() === 'ewe' ? 'ee' : getLang();
   document.getElementById('brand-slogan').textContent = t('app.slogan');
   initTheme();
+initInstall();
   installErrorBanner();
   setupTools();
   buildNav(navEl);

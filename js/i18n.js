@@ -115,6 +115,12 @@ import { HOME_I18N } from './i18n-home.js';
 for (const lang of Object.keys(HOME_I18N)) Object.assign(STRINGS[lang], HOME_I18N[lang]);
 import { AUTHOR_I18N } from './i18n-author.js';
 for (const lang of Object.keys(AUTHOR_I18N)) Object.assign(STRINGS[lang], AUTHOR_I18N[lang]);
+import { LEGAL_I18N } from './i18n-legal.js';
+for (const lang of Object.keys(LEGAL_I18N)) Object.assign(STRINGS[lang], LEGAL_I18N[lang]);
+import { INSTALL_I18N } from './i18n-install.js';
+for (const lang of Object.keys(INSTALL_I18N)) Object.assign(STRINGS[lang], INSTALL_I18N[lang]);
+import { OPS_I18N } from './i18n-ops.js';
+for (const lang of Object.keys(OPS_I18N)) Object.assign(STRINGS[lang], OPS_I18N[lang]);
 
 const LANG_NAMES = { fr: 'Français', en: 'English' };
 const STORAGE_KEY = 'cct-lang';
