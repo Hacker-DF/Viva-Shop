@@ -5,8 +5,13 @@
 import { escapeHtml } from './ui.js';
 import { supabase } from './supabase.js';
 import { translateError } from './auth.js';
+import { t } from './i18n.js';
 
-const STATE_LABELS = { brouillon: 'Brouillon', ouverte: 'Collecte ouverte', cloturee: 'Clôturée' };
+const STATE_LABELS = {
+  get brouillon() { return t('cp.state.brouillon'); },
+  get ouverte() { return t('cp.state.ouverte'); },
+  get cloturee() { return t('cp.state.cloturee'); },
+};
 const STATE_COLORS = { brouillon: 'var(--grey-600)', ouverte: 'var(--status-green)', cloturee: 'var(--status-grey)' };
 
 /** Message à afficher après le rechargement de la page. */
@@ -32,21 +37,21 @@ export async function render(container) {
 
   container.innerHTML = `
     <div class="admin-toolbar">
-      <h1>Campagnes</h1>
-      <a class="btn btn-ghost btn-small" href="#/admin">Produits</a>
+      <h1>${t('cp.title')}</h1>
+      <a class="btn btn-ghost btn-small" href="#/admin">${t('admin.products')}</a>
     </div>
     <div id="camp-msg" class="alert" role="status" hidden></div>
 
     <form id="new-camp" class="card admin-form" novalidate>
-      <h2>Nouvelle campagne</h2>
-      <label>Nom<input name="name" required minlength="2" maxlength="120"></label>
-      <label>Date limite de paiement (facultatif)<input name="deadline" type="datetime-local"></label>
-      <button class="btn btn-primary btn-block" type="submit">Créer la campagne</button>
+      <h2>${t('cp.new')}</h2>
+      <label>${t('cp.name')}<input name="name" required minlength="2" maxlength="120"></label>
+      <label>${t('cp.deadline')}<input name="deadline" type="datetime-local"></label>
+      <button class="btn btn-primary btn-block" type="submit">${t('cp.create')}</button>
     </form>
 
     <ul class="admin-list">
       ${campRes.data.map((c) => campaignHtml(c, productsOf[c.id] || [], productById, free)).join('')
-        || '<li class="empty">Aucune campagne pour le moment.</li>'}
+        || `<li class="empty">${t('cp.none')}</li>`}
     </ul>`;
 
   const msg = container.querySelector('#camp-msg');
@@ -64,7 +69,7 @@ export async function render(container) {
       payment_deadline: deadline ? new Date(deadline).toISOString() : null,
     });
     if (err) return say(translateError(err), 'error');
-    done('Campagne créée.');
+    done(t('cp.created'));
   });
 
   const list = container.querySelector('.admin-list');
@@ -78,12 +83,12 @@ export async function render(container) {
     if (action === 'state') {
       const { error: err } = await supabase.from('campaigns').update({ state }).eq('id', id);
       if (err) return say(translateError(err), 'error');
-      return done(`Campagne : ${STATE_LABELS[state].toLowerCase()}. Statuts des produits mis à jour.`);
+      return done(`${t('cp.campaign')} : ${STATE_LABELS[state].toLowerCase()}. ${t('cp.statuses_updated')}`);
     }
     if (action === 'remove') {
       const { error: err } = await supabase.from('campaign_products').delete().eq('product_id', id);
       if (err) return say(translateError(err), 'error');
-      done('Produit retiré de la campagne.');
+      done(t('cp.removed'));
     }
   });
 
@@ -92,24 +97,24 @@ export async function render(container) {
     e.preventDefault();
     const form = e.target;
     const productId = String(new FormData(form).get('product'));
-    if (!productId) return say('Choisissez un produit.', 'error');
+    if (!productId) return say(t('cp.choose'), 'error');
     const { error: err } = await supabase.from('campaign_products')
       .insert({ campaign_id: form.dataset.campaign, product_id: productId });
     if (err) {
-      return say(err.message.includes('duplicate') ? 'Ce produit est déjà dans une campagne.' : translateError(err), 'error');
+      return say(err.message.includes('duplicate') ? t('cp.dup') : translateError(err), 'error');
     }
-    done('Produit ajouté à la campagne.');
+    done(t('cp.added'));
   });
 }
 
 function campaignHtml(c, productIds, productById, free) {
   const items = productIds.map((id) => productById[id]).filter(Boolean);
   const action = c.state === 'ouverte'
-    ? `<button class="btn btn-ghost btn-small" type="button" data-action="state" data-id="${c.id}" data-state="cloturee">Clôturer la collecte</button>`
-    : `<button class="btn btn-gold btn-small" type="button" data-action="state" data-id="${c.id}" data-state="ouverte">Ouvrir la collecte</button>`;
+    ? `<button class="btn btn-ghost btn-small" type="button" data-action="state" data-id="${c.id}" data-state="cloturee">${t('cp.close')}</button>`
+    : `<button class="btn btn-gold btn-small" type="button" data-action="state" data-id="${c.id}" data-state="ouverte">${t('cp.open')}</button>`;
   const deadline = c.payment_deadline
-    ? `Paiement avant le ${escapeHtml(new Date(c.payment_deadline).toLocaleString('fr-FR'))}`
-    : 'Sans date limite';
+    ? `${t('cp.pay_before')} ${escapeHtml(new Date(c.payment_deadline).toLocaleString('fr-FR'))}`
+    : t('cp.no_deadline');
 
   return `
     <li class="admin-row">
@@ -122,16 +127,16 @@ function campaignHtml(c, productIds, productById, free) {
         <ul class="campaign-items">
           ${items.map((p) => `
             <li><span class="product-code">${escapeHtml(p.code)}</span> ${escapeHtml(p.name)}
-              <button type="button" class="chip-x" data-action="remove" data-id="${p.id}" aria-label="Retirer ce produit">×</button>
-            </li>`).join('') || '<li class="product-code">Aucun produit</li>'}
+              <button type="button" class="chip-x" data-action="remove" data-id="${p.id}" aria-label="${t('cp.remove_aria')}">×</button>
+            </li>`).join('') || `<li class="product-code">${t('cp.no_products')}</li>`}
         </ul>
         ${free.length ? `
           <form class="add-product" data-campaign="${c.id}" novalidate>
-            <select name="product" aria-label="Produit à ajouter">
-              <option value="">Ajouter un produit…</option>
+            <select name="product" aria-label="${t('cp.product_aria')}">
+              <option value="">${t('cp.add_product')}</option>
               ${free.map((p) => `<option value="${p.id}">${escapeHtml(p.code)} · ${escapeHtml(p.name)}</option>`).join('')}
             </select>
-            <button class="btn btn-ghost btn-small" type="submit">Ajouter</button>
+            <button class="btn btn-ghost btn-small" type="submit">${t('cp.add')}</button>
           </form>` : ''}
       </div>
       <div class="admin-actions">${action}</div>

@@ -380,3 +380,10 @@
   position: absolute; top: 12px; left: 12px; height: 44px; padding: 0 16px; border-radius: 22px;
   border: 0; background: var(--electric); color: #fff; font-weight: 700; font-size: 14px; cursor: pointer;
 }
+
+/* Dates prévisionnelles sur la fiche produit */
+.product-dates { list-style: none; margin: 12px 0; padding: 10px 12px; display: grid; gap: 4px;
+  border-left: 4px solid var(--gold); background: #FFF8E1; border-radius: 10px; font-weight: 600; color: var(--navy); }
+
+/* Auteur d'une commande, mis en évidence dans l'administration */
+.author-line { display: block; margin: 2px 0; font-size: .95rem; color: var(--navy); }

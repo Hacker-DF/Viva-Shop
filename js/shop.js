@@ -38,15 +38,15 @@ export async function render(container) {
 
   container.innerHTML = `
     <h1>${escapeHtml(t('shop.title'))}</h1>
-    <p class="hint">Vous ne trouvez pas un produit ? <a href="#/demande">Faites une demande spéciale</a>.</p>
+    <p class="hint">${escapeHtml(t('shop.notfound_pre'))} <a href="#/demande">${escapeHtml(t('shop.notfound_link'))}</a>.</p>
     <form id="filters" class="filters" role="search">
       <input type="search" name="q" placeholder="${escapeHtml(t('shop.search'))}" aria-label="${escapeHtml(t('shop.aria'))}">
       <div class="filters-row">
-        <select name="category" aria-label="Catégorie">
+        <select name="category" aria-label="${escapeHtml(t('shop.cat_aria'))}">
           <option value="">${escapeHtml(t('shop.allcats'))}</option>
           ${categories.map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
         </select>
-        <select name="sort" aria-label="Trier">
+        <select name="sort" aria-label="${escapeHtml(t('shop.sort_aria'))}">
           <option value="newest">${escapeHtml(t('shop.sort.new'))}</option>
           <option value="price_asc">${escapeHtml(t('shop.sort.asc'))}</option>
           <option value="price_desc">${escapeHtml(t('shop.sort.desc'))}</option>

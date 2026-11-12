@@ -26,21 +26,21 @@ const STAFF_ROLES = ['administrateur_principal', 'support_client', 'responsable_
 
 let pending = null;
 
-function ticketHtml(t, staff) {
-  const st = STATUS[t.status] || STATUS.ouverte;
-  const who = staff && t.profiles ? `<span class="product-code">${escapeHtml(t.profiles.first_name)} ${escapeHtml(t.profiles.last_name)} (@${escapeHtml(t.profiles.username)})</span>` : '';
+function ticketHtml(ticket, staff) {
+  const st = STATUS[ticket.status] || STATUS.ouverte;
+  const who = staff && ticket.profiles ? `<span class="product-code">${escapeHtml(ticket.profiles.first_name)} ${escapeHtml(ticket.profiles.last_name)} (@${escapeHtml(ticket.profiles.username)})</span>` : '';
   return `
     <li class="admin-row">
       <div class="admin-row-main">
-        <strong>${escapeHtml(t.subject)}</strong>
+        <strong>${escapeHtml(ticket.subject)}</strong>
         ${who}
-        <p class="product-code">${escapeHtml(t.message)}</p>
-        ${t.reply ? `<p><em>Réponse : ${escapeHtml(t.reply)}</em></p>` : ''}
+        <p class="product-code">${escapeHtml(ticket.message)}</p>
+        ${ticket.reply ? `<p><em>${escapeHtml(t('sup.answer'))} : ${escapeHtml(ticket.reply)}</em></p>` : ''}
         <span class="status-badge" style="--c: ${st.color}">${escapeHtml(st.label)}</span>
       </div>
       ${staff ? `<div class="admin-actions wrap">
-        ${t.status === 'ouverte' ? `<button class="btn btn-ghost btn-small" type="button" data-id="${t.id}" data-action="take">Prendre en charge</button>` : ''}
-        ${t.status !== 'resolue' ? `<button class="btn btn-primary btn-small" type="button" data-id="${t.id}" data-action="resolve">Répondre et résoudre</button>` : ''}
+        ${ticket.status === 'ouverte' ? `<button class="btn btn-ghost btn-small" type="button" data-id="${ticket.id}" data-action="take">${escapeHtml(t('sup.take'))}</button>` : ''}
+        ${ticket.status !== 'resolue' ? `<button class="btn btn-primary btn-small" type="button" data-id="${ticket.id}" data-action="resolve">${escapeHtml(t('sup.resolve'))}</button>` : ''}
       </div>` : ''}
     </li>`;
 }
@@ -60,7 +60,7 @@ export async function render(container) {
   if (error) throw error;
 
   container.innerHTML = `
-    <a class="back" href="#/compte">← Mon compte</a>
+    <a class="back" href="#/compte">${t('pf.back')}</a>
     <h1>${escapeHtml(t('sup.title'))}</h1>
     <div id="ticket-msg" class="alert" role="status" hidden></div>
     <form id="ticket" class="card admin-form" novalidate>
@@ -70,7 +70,7 @@ export async function render(container) {
       <button class="btn btn-primary btn-block" type="submit">${escapeHtml(t('sup.send'))}</button>
     </form>
     <h2 class="section-title">${escapeHtml(t('sup.mine'))}</h2>
-    <ul class="admin-list">${data.map((t) => ticketHtml(t, false)).join('') || `<li class="empty">${escapeHtml(t('sup.none'))}</li>`}</ul>`;
+    <ul class="admin-list">${data.map((ticket) => ticketHtml(ticket, false)).join('') || `<li class="empty">${escapeHtml(t('sup.none'))}</li>`}</ul>`;
 
   const msg = container.querySelector('#ticket-msg');
   const say = (text, type) => { msg.className = `alert alert-${type}`; msg.textContent = text; msg.hidden = false; };
@@ -92,10 +92,10 @@ export async function render(container) {
 /** Vue équipe : prise en charge et réponse aux réclamations. */
 export async function renderStaff(container) {
   const session = await getSession();
-  if (!session) { container.innerHTML = '<div class="alert alert-warn">Connectez-vous.</div>'; return; }
+  if (!session) { container.innerHTML = `<div class="alert alert-warn">${t('common.login_required')}</div>`; return; }
   const codes = await getRoleCodes();
   if (!codes.some((c) => STAFF_ROLES.includes(c))) {
-    container.innerHTML = '<div class="alert alert-error">Accès réservé à l’équipe support.</div>';
+    container.innerHTML = `<div class="alert alert-error">${t('sup.staff_restricted')}</div>`;
     return;
   }
 
@@ -105,10 +105,10 @@ export async function renderStaff(container) {
   if (error) throw error;
 
   container.innerHTML = `
-    <div class="admin-toolbar"><h1>Réclamations</h1></div>
+    <div class="admin-toolbar"><h1>${t('pf.staff.sup')}</h1></div>
     <div id="sup-msg" class="alert" role="status" hidden></div>
     <ul class="admin-list" id="tickets">
-      ${data.map((t) => ticketHtml(t, true)).join('') || '<li class="empty">Aucune réclamation.</li>'}
+      ${data.map((ticket) => ticketHtml(ticket, true)).join('') || `<li class="empty">${escapeHtml(t('sup.none_staff'))}</li>`}
     </ul>`;
 
   const msg = container.querySelector('#sup-msg');
@@ -121,7 +121,7 @@ export async function renderStaff(container) {
     if (btn.dataset.action === 'take') {
       update = { status: 'en_cours' };
     } else {
-      const reply = window.prompt('Votre réponse au client (obligatoire) :');
+      const reply = window.prompt(t('sup.reply_prompt'));
       if (!reply || !reply.trim()) return;
       update = { status: 'resolue', reply: reply.trim() };
     }

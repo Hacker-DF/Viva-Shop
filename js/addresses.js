@@ -5,6 +5,7 @@
 import { escapeHtml } from './ui.js';
 import { supabase } from './supabase.js';
 import { getSession, translateError } from './auth.js';
+import { t } from './i18n.js';
 
 export async function renderAddresses(slot) {
   if (!slot) return;
@@ -17,26 +18,26 @@ export async function renderAddresses(slot) {
   if (error) { slot.innerHTML = `<div class="alert alert-error">${escapeHtml(translateError(error))}</div>`; return; }
 
   slot.innerHTML = `
-    <h2 class="section-title">Mes adresses de livraison</h2>
+    <h2 class="section-title">${t('addr.title')}</h2>
     <div id="addr-msg" class="alert" role="status" hidden></div>
     <ul class="admin-list">
       ${data.map((a) => `
         <li class="admin-row">
           <div class="admin-row-main">
-            <strong>${escapeHtml(a.label)}${a.is_default ? ' · <span class="status-badge" style="--c: var(--status-green)">Par défaut</span>' : ''}</strong>
+            <strong>${escapeHtml(a.label)}${a.is_default ? ' · <span class="status-badge" style="--c: var(--status-green)">' + t('addr.default') + '</span>' : ''}</strong>
             <span class="product-code">${escapeHtml(a.address)}${a.city ? ', ' + escapeHtml(a.city) : ''}</span>
           </div>
           <div class="admin-actions wrap">
-            ${a.is_default ? '' : `<button class="btn btn-ghost btn-small" type="button" data-default="${a.id}">Par défaut</button>`}
-            <button class="btn btn-ghost btn-small" type="button" data-del="${a.id}">Supprimer</button>
+            ${a.is_default ? '' : `<button class="btn btn-ghost btn-small" type="button" data-default="${a.id}">${t('addr.default')}</button>`}
+            <button class="btn btn-ghost btn-small" type="button" data-del="${a.id}">${escapeHtml(t('common.delete'))}</button>
           </div>
-        </li>`).join('') || '<li class="empty">Aucune adresse enregistrée.</li>'}
+        </li>`).join('') || `<li class="empty">${t('addr.none')}</li>`}
     </ul>
     <form id="addr-form" class="card admin-form" novalidate>
-      <label>Nom de l’adresse (ex. Maison, Bureau)<input name="label" maxlength="40" required></label>
-      <label>Adresse (quartier, repère)<textarea name="address" rows="2" maxlength="300" required></textarea></label>
-      <label>Ville (facultatif)<input name="city" maxlength="80"></label>
-      <button class="btn btn-primary btn-block" type="submit">Ajouter l’adresse</button>
+      <label>${t('addr.label')}<input name="label" maxlength="40" required></label>
+      <label>${t('addr.address')}<textarea name="address" rows="2" maxlength="300" required></textarea></label>
+      <label>${t('addr.city')}<input name="city" maxlength="80"></label>
+      <button class="btn btn-primary btn-block" type="submit">${t('addr.add')}</button>
     </form>`;
 
   const msg = slot.querySelector('#addr-msg');
@@ -48,7 +49,7 @@ export async function renderAddresses(slot) {
     const fd = new FormData(e.currentTarget);
     const label = String(fd.get('label')).trim();
     const address = String(fd.get('address')).trim();
-    if (label.length < 2 || address.length < 5) { say('Nom (2 caractères) et adresse (5 caractères) requis.', 'error'); return; }
+    if (label.length < 2 || address.length < 5) { say(t('addr.required'), 'error'); return; }
     const { error: insError } = await supabase.from('addresses').insert({
       user_id: session.user.id,
       label,

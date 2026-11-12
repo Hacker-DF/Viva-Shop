@@ -49,6 +49,7 @@ export async function render(container) {
         ${tiersHtml(tiers)}
         ${p.description ? `<p>${escapeHtml(p.description)}</p>` : ''}
 
+        ${datesHtml(p)}
         <div class="actions">
           <button id="fav" class="btn btn-ghost btn-block" type="button">${escapeHtml(isFav ? t('prod.fav.remove') : t('prod.fav.add'))}</button>
           ${p.status === 'collecte_ouverte'
@@ -146,6 +147,9 @@ function tiersHtml(tiers) {
 }
 
 function reservationHtml(p, session) {
+  if (p.reservation_deadline && p.reservation_deadline < todayIso()) {
+    return `<p class="alert alert-info">${escapeHtml(t('dates.closed'))}</p>`;
+  }
   if (p.status !== 'collecte_ouverte' && p.status !== 'en_attente') {
     const key = p.status === 'commande_cloturee' ? 'prod.closed.closed' : 'prod.closed.susp';
     return `<p class="alert alert-info">${escapeHtml(t(key))}</p>`;
@@ -167,4 +171,25 @@ function reservationHtml(p, session) {
       <p class="hint">${escapeHtml(t('prod.notpayment'))}</p>
       <button class="btn btn-primary btn-block" type="submit">${escapeHtml(t('prod.reserve'))}</button>
     </form>`;
+}
+
+
+/** Date au format AAAA-MM-JJ, heure locale. */
+function todayIso() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/** « 2026-12-03 » → « 03/12/2026 ». */
+function frDate(iso) {
+  return iso.split('-').reverse().join('/');
+}
+
+/** Lignes d'information : commande prévue et limite de réservation (seulement si renseignées). */
+function datesHtml(p) {
+  const lines = [];
+  if (p.order_date) lines.push(`${t('dates.order')} ${frDate(p.order_date)}`);
+  if (p.reservation_deadline) lines.push(`${t('dates.reserve')} ${frDate(p.reservation_deadline)}`);
+  if (!lines.length) return '';
+  return `<ul class="product-dates">${lines.map((l) => `<li>${escapeHtml(l)}</li>`).join('')}</ul>`;
 }

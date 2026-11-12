@@ -120,7 +120,7 @@ function memberPage(profile, data) {
       <h1 id="hello">${escapeHtml(t('home.what'))}</h1>
     </section>
 
-    <nav class="tiles" aria-label="Raccourcis">
+    <nav class="tiles" aria-label="${escapeHtml(t('home.shortcuts'))}">
       ${TILES().map((t) => `
         <a class="tile" href="${t.href}">
           <span class="tile-icon">${icon(t.icon)}</span>
@@ -144,7 +144,7 @@ function memberPage(profile, data) {
               return `
               <li class="admin-row">
                 <div class="admin-row-main">
-                  <strong>${escapeHtml(d.products?.name || 'Produit')}</strong>
+                  <strong>${escapeHtml(d.products?.name || t('orders.product'))}</strong>
                   <span class="product-code">${escapeHtml(d.order_number)} · ${escapeHtml(formatFcfa(d.amount))}</span>
                 </div>
                 <span class="status-badge" style="--c: ${st.color}">${escapeHtml(st.label)}</span>

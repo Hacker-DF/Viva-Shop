@@ -40,7 +40,7 @@ export async function render(container) {
   }
 
   const { data, error } = await supabase.from('payment_declarations')
-    .select('id, order_number, amount, payer_name, payer_phone, payment_method, ref_code, txn_id, status, verification_note, proof_path, products(code, name), profiles(first_name, last_name, username)')
+    .select('id, order_number, amount, payer_name, payer_phone, payment_method, ref_code, txn_id, status, verification_note, proof_path, products(code, name), profiles(first_name, last_name, username, phone, city)')
     .order('created_at', { ascending: false })
     .limit(50);
   if (error) throw error;
@@ -98,7 +98,9 @@ export async function render(container) {
 
 function card(d) {
   const st = PAYMENT_STATUS[d.status] || PAYMENT_STATUS.en_attente_verification;
-  const client = d.profiles ? `${d.profiles.first_name} ${d.profiles.last_name} (@${d.profiles.username})` : '';
+  const author = d.profiles
+    ? `${d.profiles.first_name} ${d.profiles.last_name} (@${d.profiles.username})${d.profiles.phone ? ' · ' + d.profiles.phone : ''}${d.profiles.city ? ' · ' + d.profiles.city : ''}`
+    : t('author.missing');
   const actions = ACTIONS.filter((a) => a.status !== d.status && (!a.onlyIfConfirmed || d.status === 'paiement_confirme')).map((a) => `
     <button class="btn ${a.cls} btn-small" type="button" data-id="${d.id}" data-status="${a.status}"
             ${a.needsNote ? 'data-needs-note="1"' : ''}>${escapeHtml(a.label)}</button>`).join('');
@@ -107,7 +109,7 @@ function card(d) {
     <li class="admin-row">
       <div class="admin-row-main">
         <strong>${escapeHtml(d.order_number)} · ${escapeHtml(d.products?.name || '')}</strong>
-        <span class="product-code">${escapeHtml(client)}</span>
+        <span class="author-line"><strong>${escapeHtml(t('author.label'))} :</strong> ${escapeHtml(author)}</span>
         <span class="product-code">${t('pay.payer')} : ${escapeHtml(d.payer_name)}${d.payer_phone ? ' · ' + escapeHtml(d.payer_phone) : ''}</span>
         <span class="product-code">${escapeHtml(formatFcfa(d.amount))} · ${escapeHtml(METHODS[d.payment_method]?.label || '')}</span>
         <span class="product-code">REF : ${escapeHtml(d.ref_code || '-')} · TXN : ${escapeHtml(d.txn_id || '-')}</span>

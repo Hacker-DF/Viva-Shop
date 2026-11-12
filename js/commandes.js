@@ -5,6 +5,7 @@ import { escapeHtml, icon } from './ui.js';
 import { listMyReservations, formatFcfa } from './products.js';
 import { listMyDeclarations, markWhatsappSent, PAYMENT_STATUS, METHODS } from './payments.js';
 import { getSession, getProfile, translateError } from './auth.js';
+import { supabase } from './supabase.js';
 import { downloadProForma } from './pdf.js';
 import { myShipmentsHtml } from './logistics-admin.js';
 import { APP_CONFIG } from './config.js';
@@ -30,7 +31,7 @@ export async function render(container) {
         <div class="placeholder-icon">${icon('package')}</div>
         <h1>${escapeHtml(t('orders.title'))}</h1>
         <p>${escapeHtml(t('orders.guest'))}</p>
-        <a class="btn btn-primary" href="#/connexion">Se connecter</a>
+        <a class="btn btn-primary" href="#/connexion">${escapeHtml(t('auth.submit.login'))}</a>
       </section>`;
     return;
   }
@@ -52,7 +53,7 @@ export async function render(container) {
           return `
           <li class="admin-row">
             <div class="admin-row-main">
-              <strong>${escapeHtml(d.products?.name || 'Produit')}</strong>
+              <strong>${escapeHtml(d.products?.name || t('orders.product'))}</strong>
               <span class="product-code">${escapeHtml(d.order_number)} · ${escapeHtml(d.products?.code || '')} · ${escapeHtml(formatFcfa(d.amount))} · ${escapeHtml(METHODS[d.payment_method]?.label || '')}</span>
               <span class="status-badge" style="--c: ${st.color}">${escapeHtml(st.label)}</span>
               ${d.whatsapp_sent_at ? `<span class="product-code">${escapeHtml(t('pay.sent.badge'))}</span>` : ''}
@@ -66,26 +67,42 @@ export async function render(container) {
           </li>`;
         }).join('')}
       </ul>
-      <p class="hint">Pour envoyer le PDF : téléchargez le pro forma, ouvrez WhatsApp avec le bouton de l’assistant, puis joignez le PDF manuellement. WhatsApp ne peut pas joindre le fichier automatiquement.</p>`
+      <p class="hint">${escapeHtml(t('orders.send_hint'))}</p>`
       : `<p class="empty">${escapeHtml(t('pay.none'))}</p>`}
 
     ${shipmentsHtml}
     <h2 class="section-title">${escapeHtml(t('res.title'))}</h2>
     <p class="hint">${escapeHtml(t('res.note'))}</p>
     ${reservations.length ? `
-      <ul class="admin-list">
+      <ul class="admin-list" id="reservations">
         ${reservations.map((r) => `
           <li class="admin-row">
             <div class="admin-row-main">
-              <strong>${escapeHtml(r.products?.name || 'Produit')}</strong>
-              <span class="product-code">Code ${escapeHtml(r.products?.code || '')} · Quantité ${r.quantity}${r.variant ? ' · ' + escapeHtml(r.variant) : ''}</span>
+              <strong>${escapeHtml(r.products?.name || t('orders.product'))}</strong>
+              <span class="product-code">${escapeHtml(t('orders.code'))} ${escapeHtml(r.products?.code || '')} · ${escapeHtml(t('orders.qty'))} ${r.quantity}${r.variant ? ' · ' + escapeHtml(r.variant) : ''}</span>
             </div>
-            <span class="status-badge" style="--c: var(--electric)">${r.status === 'annulee' ? 'Annulée' : 'Enregistrée'}</span>
+            <span class="status-badge" style="--c: ${r.status === 'annulee' ? 'var(--status-grey)' : 'var(--electric)'}">${escapeHtml(r.status === 'annulee' ? t('res.status_cancelled') : t('res.status_active'))}</span>
+            ${r.status === 'enregistree' ? `<button class="btn btn-ghost btn-small" type="button" data-cancel="${r.id}">${escapeHtml(t('res.cancel'))}</button>` : ''}
           </li>`).join('')}
       </ul>` : `<p class="empty">${escapeHtml(t('res.none'))}</p>`}`;
 
   const msg = container.querySelector('#pay-msg');
   const say = (text, type) => { msg.className = `alert alert-${type}`; msg.textContent = text; msg.hidden = false; };
+
+  container.querySelector('#reservations')?.addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-cancel]');
+    if (!btn) return;
+    if (!window.confirm(t('res.cancel_confirm'))) return;
+    btn.disabled = true;
+    const { error: cancelError } = await supabase.rpc('cancel_reservation', { p_id: btn.dataset.cancel });
+    if (cancelError) { btn.disabled = false; say(translateError(cancelError), 'error'); return; }
+    const row = btn.closest('li');
+    const badge = row.querySelector('.status-badge');
+    badge.textContent = t('res.status_cancelled');
+    badge.style.setProperty('--c', 'var(--status-grey)');
+    btn.remove();
+    say(t('res.cancelled'), 'success');
+  });
 
   container.querySelector('#payments')?.addEventListener('click', async (e) => {
     const btn = e.target.closest('button[data-action]');
@@ -93,9 +110,9 @@ export async function render(container) {
     const decl = byId[btn.dataset.id];
     try {
       if (btn.dataset.action === 'proforma') {
-        say('Préparation du document…', 'info');
+        say(t('orders.prep'), 'info');
         await downloadProForma(decl, profile);
-        say('Pro forma téléchargé.', 'success');
+        say(t('orders.proforma_done'), 'success');
       } else if (btn.dataset.action === 'sent') {
         await markWhatsappSent(decl.id);
         render(container);

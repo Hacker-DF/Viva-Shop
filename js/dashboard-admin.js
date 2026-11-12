@@ -9,6 +9,7 @@ import { getSession, getRoleCodes, translateError } from './auth.js';
 import { PAYMENT_STATUS } from './payments.js';
 import { formatFcfa } from './products.js';
 import { SHIP_STATUS } from './logistics-admin.js';
+import { t } from './i18n.js';
 
 /** Nombre de lignes d'une table, avec un filtre optionnel. */
 async function countRows(table, filter = (q) => q) {
@@ -23,12 +24,12 @@ const kpi = (label, value) =>
 export async function render(container) {
   const session = await getSession();
   if (!session) {
-    container.innerHTML = '<div class="alert alert-warn">Connectez-vous pour accéder à cette page.</div>';
+    container.innerHTML = `<div class="alert alert-warn">${t('common.login_required')}</div>`;
     return;
   }
   const codes = await getRoleCodes();
   if (!codes.includes('administrateur_principal')) {
-    container.innerHTML = '<div class="alert alert-error">Réservé à l’administrateur principal.</div>';
+    container.innerHTML = `<div class="alert alert-error">${t('adm.principal_only')}</div>`;
     return;
   }
 
@@ -86,49 +87,49 @@ export async function render(container) {
   const chartData = { statusLabels, statusCounts, statusColors, days, revenue: revenueSeries, shipLabels, shipCounts, shipColors };
 
   container.innerHTML = `
-    <div class="admin-toolbar"><h1>Tableau de bord</h1></div>
+    <div class="admin-toolbar"><h1>${t('pf.staff.dash')}</h1></div>
 
     <div class="kpis">
-      ${kpi('Clients', clients)}
-      ${kpi('Produits actifs', products)}
-      ${kpi('Réservations', reservations)}
-      ${kpi('Déclarations à vérifier', toVerify)}
-      ${kpi('Paiements confirmés', confirmed)}
-      ${kpi('Chiffre d’affaires', formatFcfa(revenue))}
-      ${kpi('Colis en transit', inTransit)}
-      ${kpi('Livraisons terminées', delivered)}
-      ${kpi('Réclamations ouvertes', openTickets)}
+      ${kpi(t('db.clients'), clients)}
+      ${kpi(t('db.products'), products)}
+      ${kpi(t('db.reservations'), reservations)}
+      ${kpi(t('db.to_verify'), toVerify)}
+      ${kpi(t('db.confirmed'), confirmed)}
+      ${kpi(t('db.revenue'), formatFcfa(revenue))}
+      ${kpi(t('db.in_transit'), inTransit)}
+      ${kpi(t('db.delivered'), delivered)}
+      ${kpi(t('db.tickets'), openTickets)}
     </div>
 
     <section class="card">
-      <h2>Déclarations par statut</h2>
-      <div class="chart-box"><canvas id="chart-status" aria-label="Déclarations par statut"></canvas></div>
+      <h2>${t('db.chart_status')}</h2>
+      <div class="chart-box"><canvas id="chart-status" aria-label="${t('db.chart_status')}"></canvas></div>
     </section>
 
     <section class="card">
-      <h2>Chiffre d’affaires (30 derniers jours)</h2>
-      <div class="chart-box"><canvas id="chart-revenue" aria-label="Chiffre d’affaires par jour"></canvas></div>
+      <h2>${t('db.chart_revenue')}</h2>
+      <div class="chart-box"><canvas id="chart-revenue" aria-label="${t('db.revenue_aria')}"></canvas></div>
     </section>
 
     <section class="card">
-      <h2>Colis par étape</h2>
-      <div class="chart-box"><canvas id="chart-shipments" aria-label="Colis par étape"></canvas></div>
+      <h2>${t('db.chart_ship')}</h2>
+      <div class="chart-box"><canvas id="chart-shipments" aria-label="${t('db.chart_ship')}"></canvas></div>
     </section>
 
     <section class="card">
-      <h2>Dernières actions</h2>
+      <h2>${t('db.actions')}</h2>
       <ul class="timeline">
         ${audit.data.map((a) => `<li><span>${escapeHtml(a.action.replace(/_/g, ' '))}</span>
           <small>${escapeHtml(new Date(a.created_at).toLocaleString('fr-FR'))}</small></li>`).join('')
-          || '<li>Aucune action enregistrée.</li>'}
+          || `<li>${t('db.no_actions')}</li>`}
       </ul>
     </section>
 
     <section class="section">
-      <h2 class="section-title">Clients</h2>
-      <input id="client-search" class="search-input" type="search" placeholder="Rechercher par nom ou nom d’utilisateur">
+      <h2 class="section-title">${t('db.clients')}</h2>
+      <input id="client-search" class="search-input" type="search" placeholder="${t('db.search')}">
       <ul class="admin-list" id="client-list">
-        ${profiles.data.map(clientRowHtml).join('') || '<li class="empty">Aucun client pour le moment.</li>'}
+        ${profiles.data.map(clientRowHtml).join('') || `<li class="empty">${t('db.no_clients')}</li>`}
       </ul>
     </section>`;
 
@@ -147,12 +148,12 @@ function clientRowHtml(p) {
   return `
     <li class="admin-row" data-search="${escapeHtml(`${name} ${p.username}`.toLowerCase())}">
       <div class="admin-row-main">
-        <strong>${escapeHtml(name)}${p.is_suspended ? ' · <span class="status-badge" style="--c: var(--status-red)">Suspendu</span>' : ''}</strong>
+        <strong>${escapeHtml(name)}${p.is_suspended ? ' · <span class="status-badge" style="--c: var(--status-red)">' + t('db.suspended') + '</span>' : ''}</strong>
         <span class="product-code">@${escapeHtml(p.username)} · ${escapeHtml(p.phone || '')}${p.city ? ' · ' + escapeHtml(p.city) : ''}</span>
-        <span class="product-code">Inscrit le ${escapeHtml(new Date(p.created_at).toLocaleDateString('fr-FR'))}</span>
+        <span class="product-code">${t('db.registered')} ${escapeHtml(new Date(p.created_at).toLocaleDateString('fr-FR'))}</span>
       </div>
       <div class="admin-actions">
-        <a class="btn btn-ghost btn-small" href="#/admin/tableau/${p.id}">Voir</a>
+        <a class="btn btn-ghost btn-small" href="#/admin/tableau/${p.id}">${t('db.view')}</a>
       </div>
     </li>`;
 }
@@ -162,7 +163,7 @@ async function renderClient(container, id) {
   const { data: p, error } = await supabase.from('profiles').select('*').eq('id', id).maybeSingle();
   if (error) throw error;
   if (!p) {
-    container.innerHTML = '<div class="alert alert-warn">Client introuvable.</div><a href="#/admin/tableau">← Tableau de bord</a>';
+    container.innerHTML = `<div class="alert alert-warn">${t('db.not_found')}</div><a href="#/admin/tableau">${t('db.back')}</a>`;
     return;
   }
 
@@ -177,9 +178,9 @@ async function renderClient(container, id) {
   if (decls.error) throw decls.error;
 
   container.innerHTML = `
-    <a class="back" href="#/admin/tableau">← Tableau de bord</a>
+    <a class="back" href="#/admin/tableau">${t('db.back')}</a>
     <div class="admin-toolbar"><h1>${escapeHtml(p.first_name)} ${escapeHtml(p.last_name)}</h1></div>
-    ${p.is_suspended ? `<div class="alert alert-error">Compte suspendu${p.suspension_reason ? ' : ' + escapeHtml(p.suspension_reason) : ''}. Le client ne peut plus réserver ni déclarer de paiement.</div>` : ''}
+    ${p.is_suspended ? `<div class="alert alert-error">${t('db.suspended_acc')}${p.suspension_reason ? ' : ' + escapeHtml(p.suspension_reason) : ''}. ${t('db.suspended_note')}</div>` : ''}
     <div id="client-msg" class="alert" role="status" hidden></div>
 
     <section class="card">
@@ -190,21 +191,21 @@ async function renderClient(container, id) {
         ${kpi('Demandes', ticketCount)}
       </div>
       <button id="suspend" class="btn ${p.is_suspended ? 'btn-primary' : 'btn-ghost'} btn-block" type="button">
-        ${p.is_suspended ? 'Réactiver le compte' : 'Suspendre le compte'}
+        ${p.is_suspended ? t('db.reactivate') : t('db.suspend')}
       </button>
     </section>
 
     <section class="card">
-      <h2>Écrire à ce client</h2>
-      <p class="hint">Le message arrive dans ses notifications.</p>
+      <h2>${t('db.write')}</h2>
+      <p class="hint">${t('db.write_hint')}</p>
       <form id="send-msg" class="admin-form" novalidate>
-        <label>Titre<input name="title" maxlength="120" required></label>
-        <label>Message (500 caractères maximum)<textarea name="body" rows="3" maxlength="500"></textarea></label>
-        <button class="btn btn-primary btn-block" type="submit">Envoyer le message</button>
+        <label>${t('ann.title_label')}<input name="title" maxlength="120" required></label>
+        <label>${t('db.message_label')}<textarea name="body" rows="3" maxlength="500"></textarea></label>
+        <button class="btn btn-primary btn-block" type="submit">${t('db.send')}</button>
       </form>
     </section>
 
-    <h2 class="section-title">Déclarations de paiement</h2>
+    <h2 class="section-title">${t('db.decls')}</h2>
     <ul class="admin-list">
       ${decls.data.map((d) => `
         <li class="admin-row">
@@ -212,7 +213,7 @@ async function renderClient(container, id) {
             <strong>${escapeHtml(d.order_number)} · ${escapeHtml(d.products?.name || '')}</strong>
             <span class="product-code">${escapeHtml(formatFcfa(d.amount))} · ${escapeHtml(PAYMENT_STATUS[d.status]?.label || d.status)}</span>
           </div>
-        </li>`).join('') || '<li class="empty">Aucune déclaration.</li>'}
+        </li>`).join('') || `<li class="empty">${t('db.no_decls')}</li>`}
     </ul>`;
 
   container.querySelector('#send-msg').addEventListener('submit', async (e) => {
@@ -224,7 +225,7 @@ async function renderClient(container, id) {
       p_user: id, p_title: String(fd.get('title')).trim(), p_body: String(fd.get('body')).trim(),
     });
     feedback.className = sendError ? 'alert alert-error' : 'alert alert-success';
-    feedback.textContent = sendError ? translateError(sendError) : 'Message envoyé au client.';
+    feedback.textContent = sendError ? translateError(sendError) : t('db.sent');
     feedback.hidden = false;
     if (!sendError) form.reset();
   });
@@ -234,7 +235,7 @@ async function renderClient(container, id) {
     const suspend = !p.is_suspended;
     let reason = null;
     if (suspend) {
-      reason = window.prompt('Raison de la suspension (obligatoire) :');
+      reason = window.prompt(t('db.reason_prompt'));
       if (!reason || !reason.trim()) return;
     }
     const { error: rpcError } = await supabase.rpc('set_account_suspended', {
@@ -264,7 +265,7 @@ function loadChartJs() {
     const script = document.createElement('script');
     script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js';
     script.onload = () => resolve(window.Chart);
-    script.onerror = () => reject(new Error('Graphiques indisponibles (connexion requise).'));
+    script.onerror = () => reject(new Error(t('db.chart_err')));
     document.head.appendChild(script);
   });
   return chartLib;

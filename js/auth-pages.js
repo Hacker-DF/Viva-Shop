@@ -11,12 +11,12 @@ const loginFields = () => [
 ];
 
 const registerFields = () => [
-  { name: 'username', placeholder: 'Exemple : kofi_t', label: t('auth.username'), type: 'text', autocomplete: 'username', hint: t('auth.username.hint') },
-  { name: 'first_name', placeholder: 'Exemple : Jean', label: t('auth.firstname'), type: 'text', autocomplete: 'given-name' },
-  { name: 'last_name', placeholder: 'Exemple : KOFFI', label: t('auth.lastname'), type: 'text', autocomplete: 'family-name' },
-  { name: 'phone', placeholder: 'Exemple : +228 90 00 00 00', label: t('auth.phone'), type: 'tel', autocomplete: 'tel', hint: 'Exemple : +228 90 00 00 00' },
-  { name: 'city', placeholder: 'Exemple : Lomé', label: t('auth.city'), type: 'text', autocomplete: 'address-level2', optional: true },
-  { name: 'email', placeholder: 'Exemple : nom@mail.com', label: t('auth.email'), type: 'email', autocomplete: 'email', hint: t('auth.email.hint') },
+  { name: 'username', placeholder: t('ph.username'), label: t('auth.username'), type: 'text', autocomplete: 'username', hint: t('auth.username.hint') },
+  { name: 'first_name', placeholder: t('ph.firstname'), label: t('auth.firstname'), type: 'text', autocomplete: 'given-name' },
+  { name: 'last_name', placeholder: t('ph.lastname'), label: t('auth.lastname'), type: 'text', autocomplete: 'family-name' },
+  { name: 'phone', placeholder: t('ph.phone'), label: t('auth.phone'), type: 'tel', autocomplete: 'tel', hint: t('ph.phone') },
+  { name: 'city', placeholder: t('ph.city'), label: t('auth.city'), type: 'text', autocomplete: 'address-level2', optional: true },
+  { name: 'email', placeholder: t('ph.email'), label: t('auth.email'), type: 'email', autocomplete: 'email', hint: t('auth.email.hint') },
   { name: 'password', placeholder: '••••••••', label: t('auth.password'), type: 'password', autocomplete: 'new-password', hint: t('auth.password.hint') },
 ];
 
@@ -108,7 +108,7 @@ export async function render(container, { route }) {
     title: t('auth.login'),
     fields: loginFields(),
     submitLabel: t('auth.submit.login'),
-    footer: `${escapeHtml(t('auth.noaccount'))} <a href="#/inscription">${escapeHtml(t('auth.create'))}</a><br><a href="#/mot-de-passe">Mot de passe oublié ?</a>`,
+    footer: `${escapeHtml(t('auth.noaccount'))} <a href="#/inscription">${escapeHtml(t('auth.create'))}</a><br><a href="#/mot-de-passe">${escapeHtml(t('auth.forgot'))}</a>`,
     validate: (d) => {
       const errors = {};
       if (!d.email) errors.email = t('auth.email.required');

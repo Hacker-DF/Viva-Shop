@@ -8,6 +8,7 @@ import { escapeHtml, icon } from './ui.js';
 import { supabase } from './supabase.js';
 import { getSession, getRoleCodes, translateError } from './auth.js';
 import { listCategories, STATUS_LABELS, formatFcfa } from './products.js';
+import { t } from './i18n.js';
 
 const CATALOGUE_ROLES = ['administrateur_principal', 'gestionnaire_produits'];
 
@@ -18,8 +19,8 @@ export async function render(container) {
   const session = await getSession();
   if (!session) {
     container.innerHTML = `
-      <div class="alert alert-warn">Connectez-vous pour accéder à l'administration.</div>
-      <a class="btn btn-primary" href="#/connexion">Se connecter</a>`;
+      <div class="alert alert-warn">${t('adm.login')}</div>
+      <a class="btn btn-primary" href="#/connexion">${t('auth.submit.login')}</a>`;
     return;
   }
   const codes = await getRoleCodes();
@@ -42,14 +43,14 @@ export async function render(container) {
     return (await import('./logistics-admin.js')).render(container);
   }
   if (!codes.some((c) => CATALOGUE_ROLES.includes(c))) {
-    container.innerHTML = '<div class="alert alert-error">Accès réservé à l’équipe Viva Shop.</div>';
+    container.innerHTML = `<div class="alert alert-error">${t('adm.restricted')}</div>`;
     return;
   }
 
   const isPrincipal = codes.includes('administrateur_principal');
   if (window.location.hash.split('/')[2] === 'equipe') {
     if (!isPrincipal) {
-      container.innerHTML = '<div class="alert alert-error">Réservé à l’administrateur principal.</div>';
+      container.innerHTML = `<div class="alert alert-error">${t('adm.principal_only')}</div>`;
       return;
     }
     return (await import('./team.js')).render(container);
@@ -63,17 +64,17 @@ export async function render(container) {
 
   container.innerHTML = `
     <div class="admin-toolbar">
-      <h1>Produits</h1>
-      <a class="btn btn-ghost btn-small" href="#/admin/annonces">Annonces</a>
-      ${isPrincipal ? '<a class="btn btn-ghost btn-small" href="#/admin/tableau">Tableau de bord</a>' : ''}
-      <a class="btn btn-ghost btn-small" href="#/admin/campagnes">Campagnes</a>
-      ${isPrincipal ? '<a class="btn btn-ghost btn-small" href="#/admin/equipe">Équipe</a>' : ''}
-      <button id="new" class="btn btn-gold" type="button">${icon('tag')} Nouveau produit</button>
+      <h1>${t('admin.products')}</h1>
+      <a class="btn btn-ghost btn-small" href="#/admin/annonces">${t('ann.title')}</a>
+      ${isPrincipal ? `<a class="btn btn-ghost btn-small" href="#/admin/tableau">${t('pf.staff.dash')}</a>` : ''}
+      <a class="btn btn-ghost btn-small" href="#/admin/campagnes">${t('adm.campaigns')}</a>
+      ${isPrincipal ? `<a class="btn btn-ghost btn-small" href="#/admin/equipe">${t('team.title')}</a>` : ''}
+      <button id="new" class="btn btn-gold" type="button">${icon('tag')} ${t('adm.new')}</button>
     </div>
     <div id="admin-msg" class="alert" role="status" hidden></div>
     <section id="form-wrap" hidden></section>
     <ul class="admin-list">
-      ${products.map((p) => rowHtml(p, categoryName)).join('') || '<li class="empty">Aucun produit pour le moment.</li>'}
+      ${products.map((p) => rowHtml(p, categoryName)).join('') || `<li class="empty">${t('adm.none')}</li>`}
     </ul>`;
 
   const msg = container.querySelector('#admin-msg');
@@ -98,19 +99,19 @@ export async function render(container) {
       const { error } = await supabase.from('products')
         .update({ is_archived: !product.is_archived }).eq('id', product.id);
       if (error) say(translateError(error), 'error');
-      else refresh(product.is_archived ? 'Produit réactivé.' : 'Produit archivé.');
+      else refresh(product.is_archived ? t('adm.reactivated') : t('adm.archived'));
     } else if (btn.dataset.action === 'delete') {
-      if (!window.confirm('Supprimer définitivement ce produit ? Cette action est impossible s’il a déjà des réservations ou des paiements.')) return;
+      if (!window.confirm(t('adm.delete_confirm'))) return;
       const { error } = await supabase.rpc('delete_product', { p_id: product.id });
       if (error) say(translateError(error), 'error');
-      else refresh('Produit supprimé.');
+      else refresh(t('adm.deleted'));
     }
   });
 }
 
 async function loadProducts() {
   const { data, error } = await supabase.from('products')
-    .select('id, code, name, description, category_id, price_ht, promo_price, main_image_url, status, is_archived, has_colors')
+    .select('id, code, name, description, category_id, price_ht, promo_price, main_image_url, status, is_archived, has_colors, order_date, reservation_deadline')
     .order('created_at', { ascending: false });
   if (error) throw error;
   return data;
@@ -122,19 +123,19 @@ function rowHtml(p, categoryName) {
     <li class="admin-row ${p.is_archived ? 'is-archived' : ''}">
       <div class="admin-row-main">
         <strong>${escapeHtml(p.name)}</strong>
-        <span class="product-code">${escapeHtml(p.code)} · ${escapeHtml(categoryName[p.category_id] || 'Sans catégorie')}</span>
+        <span class="product-code">${escapeHtml(p.code)} · ${escapeHtml(categoryName[p.category_id] || t('adm.nocat'))}</span>
         <span class="admin-meta">
           <span class="status-badge" style="--c: ${status.color}">${escapeHtml(status.label)}</span>
-          ${p.is_archived ? '<span class="status-badge" style="--c: var(--grey-600)">Archivé</span>' : ''}
+          ${p.is_archived ? `<span class="status-badge" style="--c: var(--grey-600)">${t('adm.archived_badge')}</span>` : ''}
           ${escapeHtml(formatFcfa(p.promo_price ?? p.price_ht))}
         </span>
       </div>
       <div class="admin-actions">
-        <button class="btn btn-ghost btn-small" type="button" data-action="edit" data-id="${p.id}">Modifier</button>
+        <button class="btn btn-ghost btn-small" type="button" data-action="edit" data-id="${p.id}">${t('adm.edit')}</button>
         <button class="btn btn-ghost btn-small" type="button" data-action="archive" data-id="${p.id}">
-          ${p.is_archived ? 'Réactiver' : 'Archiver'}
+          ${p.is_archived ? t('adm.reactivate') : t('adm.archive')}
         </button>
-        <button class="btn btn-ghost btn-small" type="button" data-action="delete" data-id="${p.id}">Supprimer</button>
+        <button class="btn btn-ghost btn-small" type="button" data-action="delete" data-id="${p.id}">${t('common.delete')}</button>
       </div>
     </li>`;
 }
@@ -151,42 +152,46 @@ async function openForm(container, product, categories, say, onSaved) {
   wrap.hidden = false;
   wrap.innerHTML = `
     <form class="card admin-form" novalidate>
-      <h2>${product ? 'Modifier le produit' : 'Nouveau produit'}</h2>
-      ${product ? `<p class="product-code">Code ${escapeHtml(product.code)} (non modifiable)</p>` : ''}
-      <label>Nom<input name="name" required minlength="2" maxlength="150" value="${escapeHtml(v.name || '')}"></label>
-      <label>Catégorie<select name="category"><option value="">Sans catégorie</option>${categoryOptions}</select></label>
-      <label>Description<textarea name="description" rows="3">${escapeHtml(v.description || '')}</textarea></label>
+      <h2>${product ? t('adm.edit_product') : t('adm.new')}</h2>
+      ${product ? `<p class="product-code">${t('adm.code')} ${escapeHtml(product.code)} (${t('adm.nonedit')})</p>` : ''}
+      <label>${t('adm.name')}<input name="name" required minlength="2" maxlength="150" value="${escapeHtml(v.name || '')}"></label>
+      <label>${t('adm.category')}<select name="category"><option value="">${t('adm.nocat')}</option>${categoryOptions}</select></label>
+      <label>${t('adm.description')}<textarea name="description" rows="3">${escapeHtml(v.description || '')}</textarea></label>
       <div class="two-cols">
-        <label>Prix HT (FCFA)<input name="price" type="number" min="0" step="1" required value="${v.price_ht ?? ''}"></label>
-        <label>Promotion (FCFA)<input name="promo" type="number" min="0" step="1" value="${v.promo_price ?? ''}"></label>
+        <label>${t('adm.price')}<input name="price" type="number" min="0" step="1" required value="${v.price_ht ?? ''}"></label>
+        <label>${t('adm.promo')}<input name="promo" type="number" min="0" step="1" value="${v.promo_price ?? ''}"></label>
       </div>
-      <label>Statut commercial<select name="status">${statusOptions}</select></label>
-      <label>Adresse de l'image principale (https)<input name="image" type="url" placeholder="https://…" value="${escapeHtml(v.main_image_url || '')}"></label>
+      <div class="two-cols">
+        <label>${t('adm.order_date')}<input name="order_date" type="date" value="${escapeHtml(v.order_date || '')}"></label>
+        <label>${t('adm.res_deadline')}<input name="reservation_deadline" type="date" value="${escapeHtml(v.reservation_deadline || '')}"></label>
+      </div>
+      <label>${t('adm.status')}<select name="status">${statusOptions}</select></label>
+      <label>${t('adm.image')}<input name="image" type="url" placeholder="https://…" value="${escapeHtml(v.main_image_url || '')}"></label>
       <div class="field-block">
-        <span class="field-label">Photo principale</span>
-        <label class="file-drop" data-empty="Choisir la photo principale">
+        <span class="field-label">${t('adm.main_photo')}</span>
+        <label class="file-drop" data-empty="${t('adm.choose_main')}">
           <input class="visually-hidden" name="photo" type="file" accept="image/jpeg,image/png,image/webp">
           <span class="file-drop-icon" aria-hidden="true">+</span>
-          <span class="file-drop-text">Choisir la photo principale</span>
+          <span class="file-drop-text">${t('adm.choose_main')}</span>
         </label>
       </div>
       <div class="field-block">
-        <span class="field-label">Photos supplémentaires (défilement sur la fiche)</span>
-        <label class="file-drop" data-empty="Ajouter des photos">
+        <span class="field-label">${t('adm.extra_photos')}</span>
+        <label class="file-drop" data-empty="${t('adm.add_photos')}">
           <input class="visually-hidden" name="gallery" type="file" multiple accept="image/jpeg,image/png,image/webp">
           <span class="file-drop-icon" aria-hidden="true">+</span>
-          <span class="file-drop-text">Ajouter des photos</span>
+          <span class="file-drop-text">${t('adm.add_photos')}</span>
         </label>
       </div>
       <label class="check-line">
         <input name="has_colors" type="checkbox" ${v.has_colors === false ? '' : 'checked'}>
-        Ce produit propose des couleurs (choisies lors de l’ajout d’un colis)
+        ${t('adm.has_colors')}
       </label>
-      <p class="hint"><strong>Minimum 3 photos par produit</strong>, photo principale comprise. Une image carrée (800 × 800 px) s’affiche mieux.</p>
+      <p class="hint"><strong>${t('adm.min_strong')}</strong>${t('adm.min_rest')}</p>
       <p class="field-error" id="form-error" hidden></p>
       <div class="actions">
-        <button class="btn btn-primary btn-block" type="submit">Enregistrer</button>
-        <button class="btn btn-ghost btn-block" type="button" data-cancel>Annuler</button>
+        <button class="btn btn-primary btn-block" type="submit">${t('adm.save')}</button>
+        <button class="btn btn-ghost btn-block" type="button" data-cancel>${t('adm.cancel')}</button>
       </div>
     </form>`;
 
@@ -211,10 +216,10 @@ async function openForm(container, product, categories, say, onSaved) {
 
     // Contrôles avant envoi (la base revalide tout)
     let problem = '';
-    if (name.length < 2) problem = 'Le nom doit comporter au moins 2 caractères.';
-    else if (!Number.isInteger(price) || price < 0) problem = 'Le prix doit être un nombre entier positif.';
-    else if (promo !== null && (!Number.isInteger(promo) || promo < 0 || promo > price)) problem = 'La promotion doit être un entier entre 0 et le prix HT.';
-    else if (image && !image.startsWith('https://')) problem = 'L’adresse de l’image doit commencer par https://';
+    if (name.length < 2) problem = t('adm.err_name');
+    else if (!Number.isInteger(price) || price < 0) problem = t('adm.err_price');
+    else if (promo !== null && (!Number.isInteger(promo) || promo < 0 || promo > price)) problem = t('adm.err_promo');
+    else if (image && !image.startsWith('https://')) problem = t('adm.err_https');
     if (problem) { err.textContent = problem; err.hidden = false; return; }
 
     // Minimum de 5 photos par produit, photo principale comprise
@@ -229,7 +234,7 @@ async function openForm(container, product, categories, say, onSaved) {
     }
     const totalPhotos = mainCount + galleryCount + existingCount;
     if (totalPhotos < 3) {
-      err.textContent = `Un produit doit avoir au moins 3 photos, photo principale comprise. Actuellement : ${totalPhotos}.`;
+      err.textContent = `${t('adm.err_photos')} ${totalPhotos}.`;
       err.hidden = false;
       return;
     }
@@ -238,7 +243,7 @@ async function openForm(container, product, categories, say, onSaved) {
     let imageUrl = image || null;
     const photo = fd.get('photo');
     if (photo && photo.size > 0) {
-      if (photo.size > 5 * 1024 * 1024) { err.textContent = 'Photo trop lourde (5 Mo maximum).'; err.hidden = false; return; }
+      if (photo.size > 5 * 1024 * 1024) { err.textContent = t('adm.err_big'); err.hidden = false; return; }
       const ext = (photo.name.split('.').pop() || 'jpg').toLowerCase();
       const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
       const { error: uploadError } = await supabase.storage.from('produits')
@@ -256,6 +261,8 @@ async function openForm(container, product, categories, say, onSaved) {
       status: String(fd.get('status')),
       main_image_url: imageUrl,
       has_colors: fd.has('has_colors'),
+      order_date: String(fd.get('order_date') || '') || null,
+      reservation_deadline: String(fd.get('reservation_deadline') || '') || null,
     };
 
     const request = product
@@ -271,7 +278,7 @@ async function openForm(container, product, categories, say, onSaved) {
         if (galleryError) { err.textContent = galleryError; err.hidden = false; }
       }
     }
-    onSaved(product ? 'Produit modifié.' : `Produit créé. Code : ${data.code}`);
+    onSaved(product ? t('adm.updated') : `${t('adm.created')} ${data.code}`);
   });
 }
 
@@ -288,15 +295,15 @@ async function renderColorManager(wrap, productId, say) {
   const reload = () => { section.remove(); renderColorManager(wrap, productId, say); };
 
   section.innerHTML = `
-    <h2>Couleurs disponibles</h2>
-    <p class="hint">Ces couleurs sont proposées lors de l’ajout d’un colis.</p>
+    <h2>${t('adm.colors')}</h2>
+    <p class="hint">${t('adm.colors_hint')}</p>
     <ul class="campaign-items">
-      ${colors.map((c) => `<li>${escapeHtml(c.name)} <button type="button" class="chip-x" data-del="${c.id}" aria-label="Supprimer la couleur">×</button></li>`).join('')
-        || '<li class="product-code">Aucune couleur pour ce produit.</li>'}
+      ${colors.map((c) => `<li>${escapeHtml(c.name)} <button type="button" class="chip-x" data-del="${c.id}" aria-label="${t('adm.del_color')}">×</button></li>`).join('')
+        || `<li class="product-code">${t('adm.no_colors')}</li>`}
     </ul>
     <form id="color-add" novalidate>
-      <label>Nom de la couleur<input name="name" maxlength="40" required></label>
-      <button class="btn btn-ghost btn-block" type="submit">Ajouter la couleur</button>
+      <label>${t('adm.color_name')}<input name="name" maxlength="40" required></label>
+      <button class="btn btn-ghost btn-block" type="submit">${t('adm.add_color')}</button>
     </form>`;
 
   section.addEventListener('click', async (e) => {
@@ -304,20 +311,20 @@ async function renderColorManager(wrap, productId, say) {
     if (!del) return;
     const { error: delError } = await supabase.from('product_colors').delete().eq('id', del.dataset.del);
     if (delError) { say(translateError(delError), 'error'); return; }
-    say('Couleur supprimée.', 'success');
+    say(t('adm.color_deleted'), 'success');
     reload();
   });
 
   section.addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = String(new FormData(e.target).get('name')).trim();
-    if (!name) { say('Indiquez le nom de la couleur.', 'error'); return; }
+    if (!name) { say(t('adm.color_name_err'), 'error'); return; }
     const { error: insError } = await supabase.from('product_colors').insert({ product_id: productId, name });
     if (insError) {
-      say(insError.message.includes('duplicate') ? 'Cette couleur existe déjà pour ce produit.' : translateError(insError), 'error');
+      say(insError.message.includes('duplicate') ? t('adm.color_dup') : translateError(insError), 'error');
       return;
     }
-    say('Couleur ajoutée.', 'success');
+    say(t('adm.color_added'), 'success');
     reload();
   });
 
@@ -337,22 +344,22 @@ async function renderImageManager(wrap, productId, say) {
   const reload = () => { section.remove(); renderImageManager(wrap, productId, say); };
 
   section.innerHTML = `
-    <h2>Photos du produit</h2>
-    <p class="hint">Minimum 3 photos par produit, photo principale comprise. Vous en avez <strong>${imgs.length}</strong> en plus de la principale. Sur la fiche, le client les parcourt en glissant.</p>
+    <h2>${t('adm.photos_title')}</h2>
+    <p class="hint">${t('adm.min_hint')} <strong>${imgs.length}</strong> ${t('adm.extra_have')}</p>
     <div class="thumbs">
       ${imgs.map((i) => `
         <div class="thumb">
           <img src="${escapeHtml(i.url)}" alt="">
-          <button type="button" class="chip-x" data-del="${i.id}" aria-label="Supprimer la photo">×</button>
-        </div>`).join('') || '<p class="product-code">Aucune photo supplémentaire.</p>'}
+          <button type="button" class="chip-x" data-del="${i.id}" aria-label="${t('adm.del_photo')}">×</button>
+        </div>`).join('') || `<p class="product-code">${t('adm.no_extra')}</p>`}
     </div>
     <form id="img-add" novalidate>
-      <label class="file-drop" data-empty="Ajouter des photos">
+      <label class="file-drop" data-empty="${t('adm.add_photos')}">
         <input class="visually-hidden" name="photos" type="file" multiple accept="image/jpeg,image/png,image/webp">
         <span class="file-drop-icon" aria-hidden="true">+</span>
-        <span class="file-drop-text">Ajouter des photos</span>
+        <span class="file-drop-text">${t('adm.add_photos')}</span>
       </label>
-      <button class="btn btn-primary btn-block" type="submit">Téléverser les photos</button>
+      <button class="btn btn-primary btn-block" type="submit">${t('adm.upload')}</button>
     </form>`;
 
   section.addEventListener('click', async (e) => {
@@ -361,18 +368,18 @@ async function renderImageManager(wrap, productId, say) {
     const { data: removed, error: delError } = await supabase.from('product_images')
       .delete().eq('id', del.dataset.del).select('id');
     if (delError) { say(translateError(delError), 'error'); return; }
-    if (!removed?.length) { say('Suppression refusée : vos droits ne permettent pas cette action.', 'error'); return; }
-    say('Photo supprimée.', 'success');
+    if (!removed?.length) { say(t('adm.del_denied'), 'error'); return; }
+    say(t('adm.photo_deleted'), 'success');
     reload();
   });
 
   section.addEventListener('submit', async (e) => {
     e.preventDefault();
     const files = [...section.querySelector('input[name="photos"]').files];
-    if (!files.length) { say('Choisissez au moins une photo.', 'error'); return; }
+    if (!files.length) { say(t('adm.choose_one'), 'error'); return; }
     let position = imgs.length;
     for (const file of files) {
-      if (file.size > 5 * 1024 * 1024) { say('Une photo dépasse 5 Mo.', 'error'); return; }
+      if (file.size > 5 * 1024 * 1024) { say(t('adm.one_big'), 'error'); return; }
       const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
       const path = `produits/${productId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
       const { error: upError } = await supabase.storage.from('produits')
@@ -383,7 +390,7 @@ async function renderImageManager(wrap, productId, say) {
         .insert({ product_id: productId, url, position: position++ });
       if (insError) { say(translateError(insError), 'error'); return; }
     }
-    say(`${files.length} photo(s) ajoutée(s).`, 'success');
+    say(`${files.length} ${t('adm.added')}`, 'success');
     reload();
   });
 
@@ -401,7 +408,7 @@ function bindFileDrops(root) {
     input.addEventListener('change', () => {
       const n = input.files.length;
       label.dataset.count = String(n);
-      text.textContent = n ? `${n} photo(s) choisie(s)` : label.dataset.empty;
+      text.textContent = n ? `${n} ${t('adm.chosen')}` : label.dataset.empty;
     });
   });
 }
@@ -410,7 +417,7 @@ function bindFileDrops(root) {
 async function uploadGalleryPhotos(productId, files) {
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
-    if (file.size > 5 * 1024 * 1024) return `La photo « ${file.name} » dépasse 5 Mo.`;
+    if (file.size > 5 * 1024 * 1024) return `${t('adm.photo_pre')} « ${file.name} » ${t('adm.photo_post')}`;
     const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
     const path = `produits/${productId}/${Date.now()}-${i}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
     const { error: upError } = await supabase.storage.from('produits').upload(path, file, { contentType: file.type, upsert: false });

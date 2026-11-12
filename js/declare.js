@@ -14,13 +14,13 @@ import { METHODS, channelFor, createDeclaration } from './payments.js';
 const METHOD_GUIDE = {
   mixx_by_yas: {
     ussd: '*145*1#', ussdHref: 'tel:*145*1%23',
-    steps: 'Composez le code, faites continuer, puis choisissez « Ajouter les frais ».',
-    receipt: 'Exemple de reçu : « Ref: 20502637277 ». Recopiez la référence après « Ref: ».',
+    get steps() { return t('mg.mixx.steps'); },
+    get receipt() { return t('mg.mixx.receipt'); },
   },
   flooz: {
     ussd: '*155*1*1#', ussdHref: 'tel:*155*1*1%23',
-    steps: 'Composez le code, puis faites continuer.',
-    receipt: 'Exemple de reçu : « Txn ID: 040928984627 ». Recopiez l’identifiant après « Txn ID: ».',
+    get steps() { return t('mg.flooz.steps'); },
+    get receipt() { return t('mg.flooz.receipt'); },
   },
 };
 
@@ -29,17 +29,17 @@ export async function render(container) {
   const code = params.get('code') || '';
 
   if (!(await getSession())) {
-    container.innerHTML = '<div class="alert alert-warn">Connectez-vous pour déclarer un paiement.</div><a class="btn btn-primary" href="#/connexion">Se connecter</a>';
+    container.innerHTML = `<div class="alert alert-warn">${t('decl.login')}</div><a class="btn btn-primary" href="#/connexion">${t('auth.submit.login')}</a>`;
     return;
   }
   const p = code ? await getProductByCode(code) : null;
   if (!p) {
-    container.innerHTML = '<div class="alert alert-warn">Produit introuvable. Ouvrez la fiche du produit puis « Payer et déclarer ».</div>';
+    container.innerHTML = `<div class="alert alert-warn">${t('decl.notfound')}</div>`;
     return;
   }
   if (p.status !== 'collecte_ouverte') {
-    container.innerHTML = `<div class="alert alert-info">La collecte de ce produit n’est pas ouverte : le paiement n’est pas possible pour le moment.</div>
-      <a class="back" href="#/produit/${encodeURIComponent(p.code)}">← Retour au produit</a>`;
+    container.innerHTML = `<div class="alert alert-info">${t('decl.notopen')}</div>
+      <a class="back" href="#/produit/${encodeURIComponent(p.code)}">${t('decl.backprod')}</a>`;
     return;
   }
 
@@ -54,19 +54,19 @@ export async function render(container) {
     <p class="hint">${escapeHtml(t('decl.note'))}</p>
 
     <form id="declare" class="card admin-form" novalidate>
-      <label>Code produit<input value="${escapeHtml(p.code)}" readonly></label>
+      <label>${t('decl.code')}<input value="${escapeHtml(p.code)}" readonly></label>
       <label>${escapeHtml(t('decl.product'))}<input value="${escapeHtml(p.name)}" readonly></label>
       <label>${escapeHtml(t('decl.variant'))}<input name="variant" maxlength="60"></label>
       <label>${escapeHtml(t('decl.qty'))}<input name="quantity" type="number" min="1" step="1" value="1" required></label>
       <p class="hint" id="expected"></p>
-      <label>${escapeHtml(t('decl.payer'))}<input name="payer_name" required maxlength="100" placeholder="Exemple : KOFFI Jean"></label>
-      <label>${escapeHtml(t('decl.phone'))}<input name="payer_phone" type="tel" placeholder="Exemple : +228 90 00 00 00"></label>
-      <label>${escapeHtml(t('decl.amount'))}<input name="amount" type="number" min="1" step="1" required placeholder="Exemple : 25000"></label>
+      <label>${escapeHtml(t('decl.payer'))}<input name="payer_name" required maxlength="100" placeholder="${t('ph.payer')}"></label>
+      <label>${escapeHtml(t('decl.phone'))}<input name="payer_phone" type="tel" placeholder="${t('ph.phone')}"></label>
+      <label>${escapeHtml(t('decl.amount'))}<input name="amount" type="number" min="1" step="1" required placeholder="${t('ph.amount')}"></label>
       <label>${escapeHtml(t('decl.method'))}
         <select name="method" required><option value="">${escapeHtml(t('decl.choose'))}</option>${methodOptions}</select>
       </label>
       <div id="instructions" class="alert alert-info" hidden></div>
-      <label>${escapeHtml(t('decl.txn'))}<input name="txn" maxlength="60" placeholder="Exemple : 040928984627"></label>
+      <label>${escapeHtml(t('decl.txn'))}<input name="txn" maxlength="60" placeholder="${t('ph.txn')}"></label>
       <p class="hint">${escapeHtml(t('decl.ref.hint'))}</p>
       <label>${escapeHtml(t('decl.proof'))}
         <input name="proof" type="file" accept="image/jpeg,image/png,image/webp">
@@ -91,7 +91,7 @@ export async function render(container) {
   const updateExpected = () => {
     const qty = Math.max(1, Number(form.quantity.value) || 1);
     const unit = unitPriceFor(tiers, qty, basePrice);
-    expected.textContent = `Montant attendu : ${formatFcfa(unit * qty)} (${qty} × ${formatFcfa(unit)})`;
+    expected.textContent = `${t('decl.expected')} : ${formatFcfa(unit * qty)} (${qty} × ${formatFcfa(unit)})`;
     if (!amountTouched) form.amount.value = unit * qty;
     showInstructions();
   };
@@ -105,18 +105,18 @@ export async function render(container) {
     const amount = Number(form.amount.value) || 0;
     instructions.innerHTML = ch
       ? `<strong>${escapeHtml(METHODS[method].label)}</strong><br>
-         Envoyez <strong>${escapeHtml(formatFcfa(amount))}</strong> au numéro officiel <strong>${escapeHtml(ch.number)}</strong>.<br>
-         Bénéficiaire : <strong>${escapeHtml(ch.beneficiary || 'à confirmer')}</strong><br>
-         <button type="button" class="btn btn-ghost btn-small" id="copy-number">Copier le numéro</button>
-         <p>Faites le transfert depuis votre application Mobile Money, puis revenez ici pour le déclarer.</p>
-         ${g ? `<p><a class="btn btn-gold btn-small" href="${g.ussdHref}">Composer ${escapeHtml(g.ussd)}</a></p><p>${escapeHtml(g.steps)}</p><p class="hint">${escapeHtml(g.receipt)}</p>` : ''}`
-      : `<strong>Virement bancaire</strong><br>
-         Demandez les coordonnées bancaires à un assistant sur WhatsApp. Elles ne sont pas publiées ici.`;
+         ${escapeHtml(t('decl.send_amount'))} <strong>${escapeHtml(formatFcfa(amount))}</strong> ${escapeHtml(t('decl.official_number'))} <strong>${escapeHtml(ch.number)}</strong>.<br>
+         ${escapeHtml(t('decl.beneficiary'))} : <strong>${escapeHtml(ch.beneficiary || t('decl.tbc'))}</strong><br>
+         <button type="button" class="btn btn-ghost btn-small" id="copy-number">${escapeHtml(t('decl.copy'))}</button>
+         <p>${escapeHtml(t('decl.transfer_note'))}</p>
+         ${g ? `<p><a class="btn btn-gold btn-small" href="${g.ussdHref}">${escapeHtml(t('decl.dial'))} ${escapeHtml(g.ussd)}</a></p><p>${escapeHtml(g.steps)}</p><p class="hint">${escapeHtml(g.receipt)}</p>` : ''}`
+      : `<strong>${escapeHtml(t('decl.bank'))}</strong><br>
+         ${escapeHtml(t('decl.bank_note'))}`;
     instructions.hidden = false;
     const copyBtn = instructions.querySelector('#copy-number');
     copyBtn?.addEventListener('click', async () => {
-      try { await navigator.clipboard.writeText(ch.number); copyBtn.textContent = 'Numéro copié ✓'; }
-      catch { copyBtn.textContent = 'Copie impossible : notez le numéro'; }
+      try { await navigator.clipboard.writeText(ch.number); copyBtn.textContent = t('decl.copied'); }
+      catch { copyBtn.textContent = t('decl.copy_fail'); }
     });
   };
 
@@ -135,11 +135,11 @@ export async function render(container) {
     const ref = '';
     const txn = String(fd.get('txn')).trim();
 
-    if (payerName.length < 2) return fail('Indiquez le nom du payeur.');
-    if (!Number.isInteger(quantity) || quantity < 1) return fail('Quantité invalide.');
-    if (!Number.isInteger(amount) || amount <= 0) return fail('Montant invalide.');
-    if (!fd.get('method')) return fail('Choisissez un moyen de paiement.');
-    if (!txn) return fail('Renseignez la référence de la transaction.');
+    if (payerName.length < 2) return fail(t('decl.name_err'));
+    if (!Number.isInteger(quantity) || quantity < 1) return fail(t('decl.qty_err'));
+    if (!Number.isInteger(amount) || amount <= 0) return fail(t('decl.amount_err'));
+    if (!fd.get('method')) return fail(t('decl.method_err'));
+    if (!txn) return fail(t('decl.txn_err'));
 
     submit.disabled = true;
     try {
@@ -147,7 +147,7 @@ export async function render(container) {
       const proof = fd.get('proof');
       let proofPath = null;
       if (proof && proof.size > 0) {
-        if (proof.size > 5 * 1024 * 1024) throw new Error('Capture trop lourde (5 Mo maximum).');
+        if (proof.size > 5 * 1024 * 1024) throw new Error(t('decl.proof_big'));
         const ext = (proof.name.split('.').pop() || 'jpg').toLowerCase();
         proofPath = `${session.user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
         const { error: upError } = await supabase.storage.from('justificatifs')
@@ -170,14 +170,14 @@ export async function render(container) {
       container.innerHTML = `
         <section class="card placeholder">
           <div class="placeholder-icon">${icon('check')}</div>
-          <h1>Déclaration enregistrée</h1>
-          <p>Votre numéro de commande est <strong>${escapeHtml(row.order_number)}</strong>.</p>
-          <p>Notre équipe vérifie votre paiement. Il n’est confirmé qu’après cette vérification.</p>
-          <a class="btn btn-primary" href="#/commandes">Voir mes paiements</a>
+          <h1>${escapeHtml(t('decl.done_title'))}</h1>
+          <p>${escapeHtml(t('decl.done_order'))} <strong>${escapeHtml(row.order_number)}</strong>.</p>
+          <p>${escapeHtml(t('decl.done_check'))}</p>
+          <a class="btn btn-primary" href="#/commandes">${escapeHtml(t('decl.done_link'))}</a>
         </section>`;
     } catch (err) {
       const text = err.message?.includes('row-level')
-        ? 'Déclaration impossible : la collecte de ce produit n’est plus ouverte.'
+        ? t('decl.closed_err')
         : translateError(err);
       fail(text);
     } finally {

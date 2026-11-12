@@ -6,7 +6,7 @@ import { supabase } from './supabase.js';
 import { getSession } from './auth.js';
 import { t } from './i18n.js';
 
-const PRODUCT_COLUMNS = 'id, code, name, description, price_ht, promo_price, main_image_url, status, created_at';
+const PRODUCT_COLUMNS = 'id, code, name, description, price_ht, promo_price, main_image_url, status, created_at, order_date, reservation_deadline';
 
 /** Statuts commerciaux (section 7 du cahier des charges). */
 export const STATUS_LABELS = {
