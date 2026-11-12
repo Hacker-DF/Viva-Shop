@@ -8,7 +8,7 @@
  *
  * ⚠️ Incrémenter CACHE_VERSION à chaque mise à jour des fichiers statiques.
  */
-const CACHE_VERSION = 'v81';
+const CACHE_VERSION = 'v82';
 const CACHE_NAME = `cct-static-${CACHE_VERSION}`;
 
 const STATIC_ASSETS = [
@@ -23,10 +23,6 @@ const STATIC_ASSETS = [
   'css/shop.css',
   'css/admin.css',
   'assets/logo.jpg',
-  'assets/logo-transparent.png',
-  'assets/logo-watermark.png',
-  'assets/sceau-viva-shop.png',
-  'assets/signature-admin.png',
   'css/responsive.css',
   'js/app.js',
   'js/config.js',
@@ -94,7 +90,6 @@ const STATIC_ASSETS = [
   'js/notifications.js',
   'js/special-orders.js',
   'assets/icons/icon-192.png',
-  'assets/icons/icon-512.png',
 ];
 
 self.addEventListener('install', (event) => {
@@ -129,15 +124,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Application : réseau d'abord pour recevoir les mises à jour, cache en secours hors connexion
+  // Application : affichage immédiat depuis le cache, puis mise à jour en arrière-plan
   event.respondWith(
-    fetch(request).then((response) => {
-      if (response.ok) {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-      }
-      return response;
-    }).catch(() => caches.match(request))
+    caches.match(request).then((cached) => {
+      const network = fetch(request).then((response) => {
+        if (response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+        }
+        return response;
+      }).catch(() => cached);
+      return cached || network;
+    })
   );
 });
 
