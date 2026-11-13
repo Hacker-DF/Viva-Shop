@@ -7,7 +7,7 @@ import { bindCategoryGuess } from './category-guess.js';
 import { escapeHtml, icon } from './ui.js';
 import { supabase } from './supabase.js';
 import { getSession, getRoleCodes, translateError } from './auth.js';
-import { listCategories, STATUS_LABELS, formatFcfa } from './products.js';
+import { listCategories, STATUS_LABELS, formatFcfa, listTiers } from './products.js';
 import { t } from './i18n.js';
 
 const CATALOGUE_ROLES = ['administrateur_principal', 'gestionnaire_produits'];
@@ -159,6 +159,7 @@ function rowHtml(p, categoryName) {
 /** Formulaire d'ajout (product = null) ou de modification. */
 async function openForm(container, product, categories, say, onSaved) {
   const wrap = container.querySelector('#form-wrap');
+  const tiersNow = product ? await listTiers(product.id) : [];
   const v = product || {};
   const statusOptions = Object.entries(STATUS_LABELS)
     .map(([key, s]) => `<option value="${key}" ${v.status === key ? 'selected' : ''}>${escapeHtml(s.label)}</option>`).join('');
@@ -203,6 +204,7 @@ async function openForm(container, product, categories, say, onSaved) {
         <input name="has_colors" type="checkbox" ${v.has_colors === false ? '' : 'checked'}>
         ${t('adm.has_colors')}
       </label>
+      ${tiersBlockHtml(tiersNow)}
       <p class="hint"><strong>${t('adm.min_strong')}</strong>${t('adm.min_rest')}</p>
       <p class="field-error" id="form-error" hidden></p>
       <div class="actions">
@@ -215,6 +217,12 @@ async function openForm(container, product, categories, say, onSaved) {
   const err = wrap.querySelector('#form-error');
   wrap.querySelector('[data-cancel]').addEventListener('click', () => { wrap.hidden = true; wrap.innerHTML = ''; });
   bindFileDrops(wrap);
+  const tierRows = wrap.querySelector('#tier-rows');
+  wrap.querySelector('#tier-add').addEventListener('click', () => tierRows.insertAdjacentHTML('beforeend', tierRowHtml()));
+  tierRows.addEventListener('click', (e) => {
+    const removeBtn = e.target.closest('[data-tier-remove]');
+    if (removeBtn) removeBtn.closest('.tier-row').remove();
+  });
   bindCategoryGuess(wrap.querySelector('form'), categories);
   if (product) {
     if (product.has_colors !== false) renderColorManager(wrap, product.id, say);
@@ -224,6 +232,9 @@ async function openForm(container, product, categories, say, onSaved) {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const fd = new FormData(form);
+    const tiers = readTiers(form);
+    const tierProblem = validateTiers(tiers);
+    if (tierProblem) { err.textContent = tierProblem; err.hidden = false; return; }
     const name = String(fd.get('name')).trim();
     const price = Number(fd.get('price'));
     const promoRaw = String(fd.get('promo')).trim();
@@ -294,6 +305,8 @@ async function openForm(container, product, categories, say, onSaved) {
         if (galleryError) { err.textContent = galleryError; err.hidden = false; }
       }
     }
+    const tierError = await saveTiers(product ? product.id : data.id, tiers);
+    if (tierError) { err.textContent = translateError(tierError); err.hidden = false; return; }
     onSaved(product ? t('adm.updated') : `${t('adm.created')} ${data.code}`);
   });
 }
@@ -443,4 +456,61 @@ async function uploadGalleryPhotos(productId, files) {
     if (insError) return translateError(insError);
   }
   return null;
+}
+
+/** Bloc « Tarifs par quantité » du formulaire produit. */
+function tierRowHtml(tr = {}) {
+  return `<div class="tier-row">
+    <label>${t('adm.tier_min')}<input name="tier_min" type="number" min="1" step="1" value="${tr.min_qty ?? ''}"></label>
+    <label>${t('adm.tier_max')}<input name="tier_max" type="number" min="1" step="1" value="${tr.max_qty ?? ''}" placeholder="${t('adm.tier_plus')}"></label>
+    <label>${t('adm.tier_price')}<input name="tier_price" type="number" min="0" step="1" value="${tr.unit_price_ht ?? ''}"></label>
+    <button type="button" class="btn btn-ghost btn-small tier-remove" data-tier-remove aria-label="${t('adm.tier_remove')}">×</button>
+  </div>`;
+}
+
+function tiersBlockHtml(tiers) {
+  return `<section class="tiers-editor">
+    <h3>${t('adm.tiers_title')}</h3>
+    <p class="hint">${t('adm.tiers_hint')}</p>
+    <div id="tier-rows">${(tiers.length ? tiers : [{}]).map(tierRowHtml).join('')}</div>
+    <button type="button" class="btn btn-ghost btn-small" id="tier-add">+ ${t('adm.tier_add')}</button>
+  </section>`;
+}
+
+/** Lit les paliers saisis, sans les lignes vides. */
+function readTiers(form) {
+  return [...form.querySelectorAll('#tier-rows .tier-row')].map((row) => {
+    const read = (name) => row.querySelector(`[name="${name}"]`).value;
+    return {
+      min: read('tier_min') === '' ? null : Number(read('tier_min')),
+      max: read('tier_max') === '' ? null : Number(read('tier_max')),
+      price: read('tier_price') === '' ? null : Number(read('tier_price')),
+    };
+  }).filter((r) => r.min !== null || r.max !== null || r.price !== null);
+}
+
+/** Contrôle : valeurs entières cohérentes, et paliers qui ne se chevauchent pas. */
+function validateTiers(rows) {
+  if (!rows.length) return null;
+  for (const r of rows) {
+    if (!Number.isInteger(r.min) || r.min < 1 || !Number.isInteger(r.price) || r.price < 0) return t('adm.tier_err');
+    if (r.max !== null && (!Number.isInteger(r.max) || r.max < r.min)) return t('adm.tier_order');
+  }
+  const sorted = [...rows].sort((a, b) => a.min - b.min);
+  for (let i = 1; i < sorted.length; i++) {
+    const previousEnd = sorted[i - 1].max ?? Infinity;
+    if (sorted[i].min <= previousEnd) return t('adm.tier_order');
+  }
+  return null;
+}
+
+/** Remplace les paliers du produit par ceux de l'écran. */
+async function saveTiers(productId, rows) {
+  const { error: delError } = await supabase.from('price_tiers').delete().eq('product_id', productId);
+  if (delError) return delError;
+  if (!rows.length) return null;
+  const { error } = await supabase.from('price_tiers').insert(rows.map((r) => ({
+    product_id: productId, min_qty: r.min, max_qty: r.max, unit_price_ht: r.price,
+  })));
+  return error;
 }

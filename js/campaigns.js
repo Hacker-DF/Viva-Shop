@@ -85,6 +85,12 @@ export async function render(container) {
       if (err) return say(translateError(err), 'error');
       return done(`${t('cp.campaign')} : ${STATE_LABELS[state].toLowerCase()}. ${t('cp.statuses_updated')}`);
     }
+    if (action === 'delete') {
+      if (!window.confirm(t('cp.delete_confirm'))) return;
+      const { error: err } = await supabase.rpc('delete_campaign', { p_id: id });
+      if (err) return say(translateError(err), 'error');
+      return done(t('cp.deleted'));
+    }
     if (action === 'remove') {
       const { error: err } = await supabase.from('campaign_products').delete().eq('product_id', id);
       if (err) return say(translateError(err), 'error');
@@ -116,6 +122,10 @@ function campaignHtml(c, productIds, productById, free) {
     ? `${t('cp.pay_before')} ${escapeHtml(new Date(c.payment_deadline).toLocaleString('fr-FR'))}`
     : t('cp.no_deadline');
 
+  const removeBtn = c.state === 'ouverte'
+    ? ''
+    : `<button class="btn btn-ghost btn-small" type="button" data-action="delete" data-id="${c.id}">${t('common.delete')}</button>`;
+
   return `
     <li class="admin-row">
       <div class="admin-row-main">
@@ -139,6 +149,7 @@ function campaignHtml(c, productIds, productById, free) {
             <button class="btn btn-ghost btn-small" type="submit">${t('cp.add')}</button>
           </form>` : ''}
       </div>
-      <div class="admin-actions">${action}</div>
+      <div class="admin-actions">${action}
+        ${removeBtn}</div>
     </li>`;
 }
