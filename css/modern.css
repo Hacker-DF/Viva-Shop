@@ -1,0 +1,182 @@
+/* ==========================================================================
+   Lot 1 — Boutique, fiche produit et accueil : présentation plus moderne
+   Couche ajoutée après les styles existants : ne change ni le fonctionnement ni les textes.
+   ========================================================================== */
+
+/* Boutique : grille et cartes */
+.product-grid { gap: 14px; }
+.product-card-wrap { transition: transform .2s ease; }
+.product-card-wrap:hover { transform: translateY(-3px); }
+.product-card {
+  border-radius: 18px; overflow: hidden;
+  box-shadow: 0 6px 18px rgba(11, 37, 69, .08);
+  transition: box-shadow .2s ease;
+}
+.product-card:hover { box-shadow: 0 12px 28px rgba(11, 37, 69, .16); }
+.product-body { padding: 12px 14px 14px; }
+.product-body h3 { font-size: 1rem; font-weight: 700; line-height: 1.3; margin: 6px 0 4px; }
+.product-price { font-weight: 800; font-size: 1.05rem; letter-spacing: -.01em; color: var(--electric, #1E6FD9); }
+.product-code { letter-spacing: .02em; }
+.status-badge { border-radius: 999px; font-size: .72rem; letter-spacing: .02em; padding: 3px 10px; }
+.like-btn { transition: transform .15s ease, box-shadow .2s ease; }
+.like-btn:hover { box-shadow: 0 4px 14px rgba(0, 0, 0, .22); }
+
+/* Accueil : sections, raccourcis et annonces */
+.section-title { font-weight: 800; letter-spacing: -.01em; }
+.announcement { border-radius: 16px; box-shadow: 0 4px 14px rgba(0, 0, 0, .08); }
+.tile {
+  border-radius: 18px;
+  box-shadow: 0 4px 14px rgba(11, 37, 69, .08);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.tile:hover { box-shadow: 0 10px 24px rgba(11, 37, 69, .14); }
+.tile-icon { border-radius: 14px; }
+
+/* Fiche produit */
+.product-img.large {
+  border-radius: 20px; overflow: hidden;
+  box-shadow: 0 8px 24px rgba(11, 37, 69, .12);
+}
+.price-big { font-size: 1.7rem; font-weight: 800; letter-spacing: -.01em; }
+.old-price { opacity: .6; }
+.code-line {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 10px; border-radius: 10px;
+  background: rgba(30, 111, 217, .08); font-weight: 700;
+}
+.tiers, .reservation { border-radius: 16px; }
+
+/* Boutons : retour visuel plus net */
+.btn { transition: transform .15s ease, box-shadow .2s ease, background .2s ease; }
+.btn:active { transform: scale(.98); }
+.btn-primary { box-shadow: 0 6px 16px rgba(30, 111, 217, .25); }
+.btn-gold { box-shadow: 0 6px 16px rgba(242, 183, 5, .3); }
+
+/* Tablette et ordinateur : un peu plus d'espace */
+@media (min-width: 720px) {
+  .product-grid { gap: 18px; }
+}
+
+/* ==========================================================================
+   Lot 2 — Mon compte, Mes commandes et déclaration de paiement
+   ========================================================================== */
+
+/* Focus visible et lisible sur tous les champs */
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible {
+  outline: 2px solid var(--electric, #1E6FD9); outline-offset: 2px;
+}
+input, select, textarea { border-radius: 12px; }
+
+/* Mon compte : menu en cartes */
+.menu-group { gap: 8px; display: grid; }
+.menu-title { font-size: .8rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted, #5b6573); margin: 18px 0 8px; }
+.menu-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 14px; border-radius: 16px;
+  background: var(--white, #fff); text-decoration: none;
+  box-shadow: 0 3px 12px rgba(11, 37, 69, .06);
+  transition: transform .15s ease, box-shadow .2s ease;
+}
+.menu-row:hover { transform: translateX(2px); box-shadow: 0 8px 20px rgba(11, 37, 69, .12); }
+.menu-row:active { transform: scale(.99); }
+.menu-row svg { width: 22px; height: 22px; padding: 9px; box-sizing: content-box; border-radius: 12px; background: rgba(30, 111, 217, .10); color: var(--electric, #1E6FD9); }
+.menu-row strong { font-weight: 700; }
+.menu-row small { display: block; font-size: .8rem; opacity: .75; margin-top: 2px; }
+.menu-row .chev { margin-left: auto; font-size: 1.3rem; opacity: .4; }
+.account-head { border-radius: 20px; padding: 18px; }
+
+/* Cartes et listes (commandes, paiements, colis, demandes) */
+.card { border-radius: 18px; box-shadow: 0 6px 18px rgba(11, 37, 69, .07); }
+.admin-list { display: grid; gap: 12px; list-style: none; padding: 0; }
+.admin-row {
+  border-radius: 18px; padding: 14px 16px;
+  background: var(--white, #fff);
+  box-shadow: 0 4px 14px rgba(11, 37, 69, .07);
+  transition: box-shadow .2s ease;
+}
+.admin-row:hover { box-shadow: 0 10px 24px rgba(11, 37, 69, .12); }
+.admin-row-main { display: grid; gap: 4px; }
+.admin-row-main strong { font-size: 1rem; line-height: 1.3; }
+.admin-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0 12px; }
+.status-badge { font-weight: 700; }
+.author-line { display: block; font-size: .92rem; color: var(--navy, #0B2545); }
+.check-line {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 10px; border-radius: 10px;
+  background: rgba(30, 111, 217, .07); font-size: .88rem; font-weight: 600;
+}
+.check-line input { width: 18px; height: 18px; accent-color: var(--electric, #1E6FD9); }
+.empty { border-radius: 16px; padding: 18px; text-align: center; background: rgba(11, 37, 69, .04); }
+
+/* Déclaration de paiement : formulaire aéré */
+.card label, .field-block { font-weight: 600; }
+.card label input, .card label select, .card label textarea {
+  margin-top: 6px; padding: 12px 14px;
+  border: 1.5px solid #dbe3ef; background: #fbfcfe;
+}
+.card label input:focus, .card label select:focus, .card label textarea:focus {
+  border-color: var(--electric, #1E6FD9); box-shadow: 0 0 0 3px rgba(30, 111, 217, .15);
+}
+.field-line { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px dashed rgba(11, 37, 69, .12); }
+.field-line:last-child { border-bottom: 0; }
+.alert { border-radius: 14px; }
+
+/* Mobile : marges et cibles tactiles confortables */
+@media (max-width: 719px) {
+  .menu-row { padding: 16px 14px; }
+  .btn { min-height: 44px; }
+  .admin-row { padding: 14px; }
+}
+
+/* ==========================================================================
+   Lot 3 — Administration : produits, paiements, logistique, tableau de bord
+   ========================================================================== */
+
+/* En-têtes des écrans d'administration */
+.admin-toolbar h1 { font-size: 1.35rem; font-weight: 800; letter-spacing: -.01em; margin: 0; }
+.admin-toolbar { padding: 4px 0; }
+
+/* Tableau de bord : indicateurs en cartes */
+.kpi-grid { gap: 12px; }
+.kpi {
+  border-radius: 18px; padding: 16px;
+  background: linear-gradient(160deg, #ffffff, #f5f9ff);
+  box-shadow: 0 6px 16px rgba(11, 37, 69, .08);
+  border-top: 4px solid var(--electric, #1E6FD9);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.kpi:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(11, 37, 69, .14); }
+.kpi span { font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; opacity: .75; }
+.kpi strong { display: block; margin-top: 6px; font-size: 1.5rem; font-weight: 800; letter-spacing: -.02em; }
+.kpi:nth-child(3n+2) { border-top-color: var(--gold, #F2B705); }
+.kpi:nth-child(3n) { border-top-color: #2E9E5B; }
+
+/* Formulaires d'administration */
+.admin-form { border-radius: 18px; padding: 18px; box-shadow: 0 6px 18px rgba(11, 37, 69, .07); background: var(--white, #fff); }
+.admin-form h2 { font-size: 1.1rem; font-weight: 800; margin: 0 0 10px; }
+.two-cols { gap: 12px; }
+.check-line { margin: 8px 0; }
+
+/* Listes produits, paiements, colis */
+.admin-list .admin-row { border-left: 4px solid transparent; }
+.admin-list .admin-row:hover { border-left-color: var(--electric, #1E6FD9); }
+.admin-row .btn-small { min-height: 36px; border-radius: 10px; }
+.admin-row .product-code { font-size: .85rem; }
+
+/* Badges de statut : pastilles nettes */
+.status-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 11px; border-radius: 999px;
+  font-size: .75rem; font-weight: 700; color: #fff;
+  background: var(--c, var(--electric, #1E6FD9));
+}
+
+/* Boutons d'action : groupés et lisibles */
+.admin-toolbar .btn { border-radius: 12px; }
+.admin-toolbar .btn-ghost { background: var(--white, #fff); box-shadow: 0 2px 8px rgba(11, 37, 69, .08); }
+
+/* Mobile */
+@media (max-width: 719px) {
+  .kpi strong { font-size: 1.3rem; }
+  .admin-toolbar { gap: 6px; }
+}

@@ -20,6 +20,10 @@ const STAFF_ROLES = ['administrateur_principal', 'responsable_commandes'];
 
 /** Vue client. */
 export async function render(container) {
+  if (!container.dataset.photoBound) {
+    container.dataset.photoBound = '1';
+    container.addEventListener('change', (e) => { if (e.target.name === 'photo') showPhotoPreview(e.target); });
+  }
   const session = await getSession();
   if (!session) {
     container.innerHTML = `<div class="alert alert-warn">${escapeHtml(t('sp.guest'))}</div><a class="btn btn-primary" href="#/connexion">${escapeHtml(t('common.login'))}</a>`;
@@ -37,7 +41,15 @@ export async function render(container) {
     <div id="sp-msg" class="alert" role="status" hidden></div>
     <form id="sp-form" class="card admin-form" novalidate>
       <label>${escapeHtml(t('sp.product'))}<input name="product_name" required maxlength="150"></label>
-      <label>${escapeHtml(t('sp.photo'))}<input name="photo" type="file" accept="image/jpeg,image/png,image/webp"></label>
+      <div class="field-block">
+        <span class="field-label">${escapeHtml(t('sp.photo'))}</span>
+        <label class="file-drop" data-empty="${escapeHtml(t('sp.photo_choose'))}">
+          <input class="visually-hidden" name="photo" type="file" accept="image/jpeg,image/png,image/webp">
+          <span class="file-drop-icon" aria-hidden="true">+</span>
+          <span class="file-drop-text">${escapeHtml(t('sp.photo_choose'))}</span>
+        </label>
+        <div class="proof-preview" hidden></div>
+      </div>
       <label>${t('sp.supplier')}<input name="supplier_link" type="url" maxlength="300" placeholder="https://…"></label>
       <label>${t('sp.description')}<textarea name="description" rows="3" maxlength="1000"></textarea></label>
       <div class="two-cols">
@@ -197,4 +209,26 @@ export async function renderStaff(container) {
     if (upError) { say(translateError(upError), 'error'); return; }
     renderStaff(container);
   });
+}
+
+/** Aperçu de la photo de la demande : miniature, nom, taille, et alerte si elle est trop lourde. */
+function showPhotoPreview(input) {
+  const label = input.closest('.file-drop');
+  const box = input.closest('.field-block')?.querySelector('.proof-preview');
+  const file = input.files[0];
+  if (label) {
+    label.dataset.count = file ? '1' : '0';
+    label.querySelector('.file-drop-text').textContent = file ? t('sp.photo_chosen') : t('sp.photo_choose');
+  }
+  if (!box) return;
+  if (!file) { box.hidden = true; box.innerHTML = ''; return; }
+  const mb = (file.size / (1024 * 1024)).toFixed(2);
+  const tooBig = file.size > 5 * 1024 * 1024;
+  box.hidden = false;
+  box.innerHTML = `<img src="${URL.createObjectURL(file)}" alt="">
+    <div>
+      <strong>${escapeHtml(file.name)}</strong>
+      <span class="hint">${mb} Mo</span>
+      ${tooBig ? `<span class="field-error">${escapeHtml(t('sp.photo_big'))}</span>` : ''}
+    </div>`;
 }

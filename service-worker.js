@@ -8,7 +8,7 @@
  *
  * ⚠️ Incrémenter CACHE_VERSION à chaque mise à jour des fichiers statiques.
  */
-const CACHE_VERSION = 'v94';
+const CACHE_VERSION = 'v99';
 const CACHE_NAME = `cct-static-${CACHE_VERSION}`;
 
 const STATIC_ASSETS = [
@@ -24,6 +24,7 @@ const STATIC_ASSETS = [
   'css/admin.css',
   'assets/logo.jpg',
   'css/responsive.css',
+  'css/modern.css',
   'js/app.js',
   'js/config.js',
   'js/router.js',
@@ -62,6 +63,9 @@ const STATIC_ASSETS = [
   'js/reservations-admin.js',
   'js/i18n-invite.js',
   'js/i18n-ann.js',
+  'js/i18n-photo.js',
+  'js/boot.js',
+  'js/reset.js',
   'js/invite.js',
   'js/i18n-del.js',
   'js/journal.js',
