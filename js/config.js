@@ -6,7 +6,7 @@
  */
 export const APP_CONFIG = {
   // Clé publique VAPID (notifications) : générée une fois, à remplacer avant mise en ligne
-  push: { vapidPublicKey: 'REMPLACER_PAR_LA_CLE_PUBLIQUE_VAPID' },
+  push: { vapidPublicKey: 'BGVqZvEdgyPpCf4CuF5v2N_JPz5GXfFzJw3ubR2JgA0Ms05ZiBpepwpTUqB1Bp307HbiecRLjA9zemIiceWV4ic' },
   name: 'Viva Shop', // Nom officiel : à confirmer, un seul endroit à modifier
   slogan: 'Votre passerelle entre la Chine et le Togo',
   defaultLang: 'fr',
